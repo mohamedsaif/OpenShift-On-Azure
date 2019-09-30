@@ -15,9 +15,9 @@ az account show
 
 # Set the tenant ID
 TENANT_ID=$(az account show --query tenantId -o tsv)
-AAD_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+SUBSCRIPTION_ID=$(az account show --query id -o tsv)
 echo $TENANT_ID
-echo $AAD_SUBSCRIPTION_ID
+echo $SUBSCRIPTION_ID
 
 clear
 
@@ -73,7 +73,7 @@ echo $OCP_SP | jq
 OCP_SP_ID=$(echo $OCP_SP | jq -r .appId)
 OCP_SP_PASSWORD=$(echo $OCP_SP | jq -r .password)
 OCP_SP_TENANT=$(echo $OCP_SP | jq -r .tenant)
-OCP_SP_SUBSCRIPTION_ID=$AAD_SUBSCRIPTION_ID
+OCP_SP_SUBSCRIPTION_ID=$SUBSCRIPTION_ID
 echo $OCP_SP_ID
 echo $OCP_SP_PASSWORD
 echo $OCP_SP_TENANT
