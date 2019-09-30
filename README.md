@@ -270,21 +270,6 @@ cd installer
 # Create the cluster based on the above configuration
 ./openshift-install create cluster
 
-# You might hit some subscription service provisioning limits:
-# compute.VirtualMachinesClient#CreateOrUpdate: Failure sending request: StatusCode=0 -- Original Error: autorest/azure: Service returned an error. 
-# Status=<nil> Code="OperationNotAllowed" Message="Operation results in exceeding quota limits of Core. Maximum allowed: 20, Current in use: 20
-# , Additional requested: 8.
-# Solving it is super easy, submit a new support request here:
-# https://aka.ms/ProdportalCRP/?#create/Microsoft.Support/Parameters/
-# Use the following details:
-# Type	Service and subscription limits (quotas)
-# Subscription	Select target subscription
-# Problem type	Compute-VM (cores-vCPUs) subscription limit increases
-# Click add new quota details (increase from 20 to 50 as the new quota)
-# Usually it is auto approved :)
-# To view the current limits for a specific location:
-az vm list-usage -l $LOCATION -o table
-
 # By default, a cluster will create:
 # Bootstrap:    1 Standard_D4s_v3 vm (removed after install)
 # Master Nodes: 3 Standard_D8s_v3 (4 vcpus, 16 GiB memory)
@@ -337,8 +322,49 @@ export KUBECONFIG=/home/localadmin/aks/AKS-SecureCluster/OCP/OCP-Install/install
 # if you are interested to look behind the scene on what is happing, access the logs
 cat ./.openshift_install.log
 
+```
+
+## Troubleshooting
+
+### Destroy the cluster
+
+If you need to delete the provisioned cluster, it is so simple thorugh the following command
+
+```bash
+
 # If cluster needs to be destroyed to be recreated, execute the following:
 ./openshift-install destroy cluster
 # Note that some files are not removed (like the terrafrom.tfstate) by the installer. You need to remove them manually
 
 ```
+
+### Troubleshooting 
+
+#### Azure Subscription Limits
+
+Some accounts (specially trial accounts) has limits on how many vCPU you can provision on the subscription. Below is some guidance on how you can deal with that.
+
+```bash
+
+# You might hit some subscription service provisioning limits:
+# compute.VirtualMachinesClient#CreateOrUpdate: Failure sending request: StatusCode=0 -- Original Error: autorest/azure: Service returned an error. 
+# Status=<nil> Code="OperationNotAllowed" Message="Operation results in exceeding quota limits of Core. Maximum allowed: 20, Current in use: 20
+# , Additional requested: 8.
+# Solving it is super easy, submit a new support request here:
+# https://aka.ms/ProdportalCRP/?#create/Microsoft.Support/Parameters/
+# Use the following details:
+# Type	Service and subscription limits (quotas)
+# Subscription	Select target subscription
+# Problem type	Compute-VM (cores-vCPUs) subscription limit increases
+# Click add new quota details (increase from 20 to 50 as the new quota)
+# Usually it is auto approved :)
+# To view the current limits for a specific location:
+az vm list-usage -l $LOCATION -o table
+
+```
+
+#### OpenShift Installer Official GitHub
+
+It is always good to check the official installer page on GitHub where you can find the latest information.
+
+[OpenShift Azure Installer](https://github.com/openshift/installer/tree/master/docs/user/azure)
