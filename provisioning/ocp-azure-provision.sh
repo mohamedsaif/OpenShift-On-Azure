@@ -106,7 +106,7 @@ az role assignment list --assignee $OCP_SP_ID -o table
 # Get the json pull secret from RedHat
 # https://cloud.redhat.com/openshift/install/azure/installer-provisioned
 
-# Save downloaded tar.gz files to a folder (like OCP-Install)
+# Upload the files downloaded through Azure Cloud Shell or save tar.gz files to a folder if you are using client terminal (like OCP-Install)
 
 # Extract the installer to installer folder
 mkdir installer
@@ -115,7 +115,7 @@ tar -xvzf ./openshift-install-linux-4.2.0-0.nightly-2019-09-23-115152.tar.gz -C 
 mkdir client
 tar -xvzf ./openshift-client-linux-4.2.0-0.nightly-2019-09-23-115152.tar.gz -C ./client
 
-# Starting Installer-Providered-Infrastructure
+# Starting Installer-Provisioned-Infrastructure
 # Change dir to installer
 cd installer
 ./openshift-install create install-config
@@ -124,7 +124,7 @@ cd installer
 
 # Note: You can review the generated install-config.yaml and tune any parameters before creating the cluster
 
-# Now the cluster confiration are saved to install-config.yaml
+# Now the cluster configuration are saved to install-config.yaml
 
 # Create the cluster based on the above configuration
 ./openshift-install create cluster
@@ -133,15 +133,15 @@ cd installer
 # compute.VirtualMachinesClient#CreateOrUpdate: Failure sending request: StatusCode=0 -- Original Error: autorest/azure: Service returned an error. 
 # Status=<nil> Code="OperationNotAllowed" Message="Operation results in exceeding quota limits of Core. Maximum allowed: 20, Current in use: 20
 # , Additional requested: 8.
-# Sovling it is super easy, submit a new support request here:
+# Solving it is super easy, submit a new support request here:
 # https://aka.ms/ProdportalCRP/?#create/Microsoft.Support/Parameters/
 # Use the following details:
 # Type	Service and subscription limits (quotas)
 # Subscription	Select target subscription
 # Problem type	Compute-VM (cores-vCPUs) subscription limit increases
-# Click add new qouta details (increase from 20 to 50 as the new qouta)
+# Click add new quota details (increase from 20 to 50 as the new quota)
 # Usually it is auto approved :)
-# To view the current limist for a sepcific location:
+# To view the current limits for a specific location:
 az vm list-usage -l $LOCATION -o table
 
 # By default, a cluster will create:
@@ -172,7 +172,7 @@ az vm list-usage -l $LOCATION -o table
 cd ..
 cd client
 
-# this step so you will not need to use oc login
+# this step so you will not need to use oc login (you will have a different path)
 export KUBECONFIG=/home/localadmin/aks/AKS-SecureCluster/OCP/OCP-Install/installer/auth/kubeconfig
 
 # basic operations
@@ -195,10 +195,6 @@ export KUBECONFIG=/home/localadmin/aks/AKS-SecureCluster/OCP/OCP-Install/install
 
 # if you are interested to look behind the scene on what is happing, access the logs
 cat ./.openshift_install.log
-
-# You might get errors, you can easily start over:
-# I got this one before
-# FATAL failed to initialize the cluster: Working towards 4.2.0-0.nightly-2019-09-21-174942: 99% complete 
 
 # If cluster needs to be destroyed to be recreated, execute the following:
 ./openshift-install destroy cluster
