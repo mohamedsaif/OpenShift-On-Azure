@@ -1,6 +1,6 @@
 # OpenShift 4.x on Azure IaaS
 
-Provisioning Red Hat OpenShift Container Platform 4.x (starting from 4.2) on Azure IaaS using the Red Hat's official Installer (Installer Provisioned Infrastructure or IPI)
+Provisioning Red Hat OpenShift Container Platform 4.x (starting from 4.2) on Azure IaaS using the Red Hat's official Installer (Installer Provisioned Infrastructure or IPI).
 
 By the end of this guid, the following OCP cluster will be provisioned:
 
@@ -408,9 +408,9 @@ Issue was resolved by making sure the DNS ```nslookup``` return valid response a
 
 #### Stuck at 99%
 
-In my case, I missed to properly configuration the AAD permissions for the (Service Principal) account. 
+In my case, I missed to properly configure the AAD permissions for the (Service Principal) account. 
 
-Issue was resolved through granting the correct permission and retry the installtion.
+Issue was resolved through granting the correct permission and retry the installation.
 
 #### Azure Subscription Limits
 
