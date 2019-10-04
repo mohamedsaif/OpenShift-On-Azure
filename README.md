@@ -392,6 +392,14 @@ If you need to delete the provisioned cluster, it is so simple thorugh the follo
 
 ### Troubleshooting 
 
+#### Using the latest Release
+
+I've wrote this repo during the final days of the Technical Preview of Azure IPI.
+
+Almost everyday during the tech preview, a new installer version is released.
+
+Make sure that you are using the latest version of the installer to get all the latest bits.
+
 #### DNS is not ready
 
 If you DNS is not ready or discoverable, the installer will not be able to reach the cluster APIs.
