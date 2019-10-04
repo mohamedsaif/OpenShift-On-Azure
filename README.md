@@ -224,6 +224,10 @@ az role assignment list --assignee $OCP_SP_ID -o table
 
 ```
 
+Checking on the AAD permission admin consent is granted successfully (if not, click on the Grant Admin Consent).
+
+![aad-permissions](res/aad-permissions.png)
+
 ### 3. SSH Key
 
 I would recommend providing SSH key during the setup, if you need to generate one, below is the command you need:
@@ -324,6 +328,54 @@ cat ./.openshift_install.log
 
 ```
 
+## Looking at the cluster
+
+Now let's have a look inside Azure and OCP console.
+
+### Resource Group
+
+![ocp-resource-group](res/ocp-rg.png)
+
+### Installer provisioned files
+
+Have a look at the terraform files in addition to the installer logs
+
+![ocp-installer-files](res/ocp-installer-files.png)
+
+### Nested Subdomains
+
+OCP Installer will use the provisioned DNS zone to configure all needed subdomains and nested subdomains to be used by the cluster.
+
+![ocp-subdomains](res/ocp-subdomain.png)
+
+### Azure Storage Accounts for OS Images & Logs
+
+![storage-account](res/ocp-storage-primary.png)
+
+### OCP Projects
+
+These are some of the projects that provisioned out of the box to have the OCP cluster operational
+
+![ocp-console](res/ocp-console.png)
+
+### OCP Cluster Settings - Cluster Operators 
+
+![cluster-settings](res/ocp-cluster-settings.png)
+
+### Namespaces
+
+![ocp-namespaces](res/ocp-namespaces.png)
+
+### Storage Classes
+
+In order for most services to function, they need storage. 
+
+OCP is provisioned out-of-the-box with Azure Premium Disk storage class (an attached disk to node)
+
+Azure offers few other options that you can provision (like Azure Files which allow scenarios like ReadOnlyMany and ReadWriteMany).
+
+![storage-classes](res/ocp-storage-classes.png)
+
 ## Troubleshooting
 
 ### Destroy the cluster
@@ -339,6 +391,18 @@ If you need to delete the provisioned cluster, it is so simple thorugh the follo
 ```
 
 ### Troubleshooting 
+
+#### DNS is not ready
+
+If you DNS is not ready or discoverable, the installer will not be able to reach the cluster APIs.
+
+Issue was resolved by making sure the DNS ```nslookup``` return valid response as per the installation steps showed above.
+
+#### Stuck at 99%
+
+In my case, I missed to properly configuration the AAD permissions for the (Service Principal) account. 
+
+Issue was resolved through granting the correct permission and retry the installtion.
 
 #### Azure Subscription Limits
 
