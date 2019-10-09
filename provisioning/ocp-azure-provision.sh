@@ -23,7 +23,7 @@ clear
 
 #***** END Login to Azure Subscription *****
 
-#***** OpenShift Prerequesties *****
+#***** OpenShift Prerequisites *****
 
 # Create a resource group
 az group create --name $RG --location $LOCATION
@@ -44,7 +44,7 @@ az network dns zone show -g $RG -n $DNS_ZONE --query nameServers -o table
 # Check if the update successful, it might take several mins
 nslookup -type=SOA $DNS_ZONE
 
-# Reponse like
+# Response like
 # Server: ns1-04.azure-dns.com
 # Address: 208.76.47.4
 
@@ -81,7 +81,7 @@ echo $OCP_SP_SUBSCRIPTION_ID
 # Or create the SP and save the information to file
 # az ad sp create-for-rbac --role Owner --name team-installer | jq --arg sub_id "$(az account show | jq -r '.id')" '{subscriptionId:$sub_id,clientId:.appId, clientSecret:.password,tenantId:.tenant}' > ~/.azure/osServicePrincipal.json
 
-# Assinging AAD ReadWrite.OwnedBy
+# Assigning AAD ReadWrite.OwnedBy
 az ad app permission add --id $OCP_SP_ID --api 00000002-0000-0000-c000-000000000000 --api-permissions 824c81eb-e3f8-4ee6-8f6d-de7f50d565b7=Role
 # Granting the AAD permission (Admin Consent). You can double check on Azure Portal to make sure the admin consent was granted
 az ad app permission grant --id $OCP_SP_ID --api 00000002-0000-0000-c000-000000000000
