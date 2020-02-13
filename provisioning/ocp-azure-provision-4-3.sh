@@ -62,15 +62,20 @@ clear
 #***** OpenShift Azure Prerequisites *****
 
 # Variables
-PREFIX=ocp-dev-ae
+OCP_LOCATION=uaenorth
+OCP_LOCATION_CODE=aen
+SUBSCRIPTION_CODE=mct
+PREFIX=$SUBSCRIPTION_CODE-ocp-dev
 RG_SHARED=$PREFIX-shared-rg
-RG_VNET=$PREFIX-vnet-rg
-LOCATION=uaenorth
-DNS_ZONE=ocp.mohamedsaif.com
-CLUSTER_NAME=dev-ocp-cluster-ae
+RG_VNET=$PREFIX-vnet-rg-$OCP_LOCATION_CODE
+DNS_ZONE=subdomain.yourdomain.com
+CLUSTER_NAME=dev-ocp-cluster-$OCP_LOCATION_CODE
 
-# Create a resource group to host the shared resources (in this setup, we will use it for DNS only)
-az group create --name $RG_SHARED --location $LOCATION
+# Create a resource group to host the shared resources (in this setup, we will use it for DNS)
+az group create --name $RG_SHARED --location $OCP_LOCATION
+
+# Create a resource group to host the network resources (in this setup, we will use it for vnet)
+az group create --name $RG_VNET --location $OCP_LOCATION
 
 ### DNS Setup
 
@@ -93,7 +98,7 @@ nslookup -type=SOA $DNS_ZONE
 # Server: ns1-04.azure-dns.com
 # Address: 208.76.47.4
 
-# ocp.mohamedsaif.com
+# yoursubdomain.yourdomain.com
 # primary name server = ns1-04.azure-dns.com
 # responsible mail addr = msnhst.microsoft.com
 # serial = 1
@@ -106,6 +111,37 @@ nslookup -type=SOA $DNS_ZONE
 # Note: You need to make sure that you can get a valid response to nslookup before you proceed.
 
 ### End DNS Setup
+
+### vnet setup
+# I will be creating the following cluster networking
+# average of 50+- pods per node and will be running across 40+- nodes
+# Address space: 10.165.0.0/16
+# Masters CIDR (): 10.165.0.0/24 (250 addresses)
+# Workers CIDR (): 10.165.1.0/24 (250 addresses)
+
+# allocated addresses (/16 means from 0.0 to 255.255). Cluster machine CIRD must be part of it
+OCP_VNET_ADDRESS_SPACE="10.165.0.0/16"
+OCP_VNET_NAME="spoke-${PREFIX}-${OCP_LOCATION_CODE}"
+# Masters subnet (master VMs, ILB, IPI VMs)
+MST_SUBNET_IP_PREFIX="10.165.0.0/24"
+MST_SUBNET_NAME="mgm-subnet"
+# Workers subnet
+WRK_SUBNET_IP_PREFIX="10.165.1.0/24"
+WRK_SUBNET_NAME="pods-subnet"
+
+az network vnet create \
+    --resource-group $RG_VNET \
+    --name $OCP_VNET_NAME \
+    --address-prefixes $OCP_VNET_ADDRESS_SPACE \
+    --subnet-name $MST_SUBNET_NAME \
+    --subnet-prefix $MST_SUBNET_IP_PREFIX
+
+# Create subnet for services
+az network vnet subnet create \
+    --resource-group $RG_VNET \
+    --vnet-name $OCP_VNET_NAME \
+    --name $WRK_SUBNET_NAME \
+    --address-prefix $WRK_SUBNET_IP_PREFIX
 
 ### SP Setup
 
@@ -121,6 +157,7 @@ OCP_SP_SUBSCRIPTION_ID=$OCP_SUBSCRIPTION_ID
 echo $OCP_SP_ID
 echo $OCP_SP_PASSWORD
 echo $OCP_SP_TENANT
+echo $OCP_SP_SUBSCRIPTION_ID
 # Save the above information in a secure location
 
 # Assigning AAD ReadWrite.OwnedBy
@@ -157,15 +194,27 @@ mkdir installation
 
 # Start the IPI process by creating installation configuration file
 ./openshift-install create install-config --dir=./installation
+# After adjusting the config file to your specs, copy it out of the installation folder for later use
+# If you have a copy of the config, you can copy it to the installation folder
+# cp ./install-config.yaml ./installation
 
-# Note: Credentials saved to /home/localadmin/.azure/osServicePrincipal.json
+# Note: Credentials saved to ~/.azure/osServicePrincipal.json for the first time your run the installer. 
+# After that it will not ask again for the SP details
 
 # Note: You can review the generated install-config.yaml and tune any parameters before creating the cluster
+# Note: You can re-run create install-config commands multiple times to validate your modifications
 
-# Now the cluster configuration are saved to install-config.yaml
+# Advanced configurations editing (modifying kube-proxy for example) can be achieved by generating the installation manifests
+./openshift-install create manifests --dir=./installation
+# This will generate 2 folders, openshift () and manifests
+# Check also .openshift_install_state.json for a detailed list of configuration and resource names.
+# Updating the InfraID can modify the entire providioned resources names (resource group, load balancers,...)
+
+# Now the cluster final configuration are saved to install-config.yaml
 
 # Create the cluster based on the above configuration
-./openshift-install create cluster
+# change log level to debug to get further details (other options are warn and error)
+./openshift-install create cluster --dir=./installation --log-level=info
 
 # You might hit some subscription service provisioning limits:
 # compute.VirtualMachinesClient#CreateOrUpdate: Failure sending request: StatusCode=0 -- Original Error: autorest/azure: Service returned an error. 
@@ -180,7 +229,7 @@ mkdir installation
 # Click add new quota details (increase from 20 to 50 as the new quota)
 # Usually it is auto approved :)
 # To view the current limits for a specific location:
-az vm list-usage -l $LOCATION -o table
+az vm list-usage -l $OCP_LOCATION -o table
 
 # By default, a cluster will create:
 # Bootstrap:    1 Standard_D4s_v3 vm (removed after install)
@@ -235,5 +284,5 @@ export KUBECONFIG=/home/localadmin/aks/AKS-SecureCluster/OCP/OCP-Install/install
 cat ./.openshift_install.log
 
 # If cluster needs to be destroyed to be recreated, execute the following:
-./openshift-install destroy cluster
+./openshift-install destroy cluster --dir=./installation
 # Note that some files are not removed (like the terrafrom.tfstate) by the installer. You need to remove them manually

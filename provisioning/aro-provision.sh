@@ -2,10 +2,10 @@ az login
 LOCATION=southafricanorth
 CLUSTER_NAME=aroclusterza
 
-APPID="ed35b109-77dc-4633-bfbf-b45c578db6a9"
-GROUPID="70c8d357-11e5-4f02-a5d3-ba685c4a2da9"
-SECRET="tIsdOX68t[tWZcvRrwpT]3T=TM2MqCF_"
-TENANT="4dcb6b3c-dea4-4178-afa1-1a15f96bf779"
+APPID="REPLACE"
+GROUPID="REPLACE"
+SECRET="REPLACE"
+TENANT="REPLACE"
 
 az feature register --namespace Microsoft.ContainerService -n AROGA
 az provider register -n Microsoft.ContainerService
