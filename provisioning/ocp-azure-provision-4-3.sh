@@ -83,7 +83,6 @@ az group create --name $RG_VNET --location $OCP_LOCATION
 # Create a DNS Zone (for naked or subdomain)
 az network dns zone create -g $RG_SHARED -n $DNS_ZONE
 
-
 # Delegate the DNS Zone by updating the domain registrar Name Servers to point at Azure DNS Zone Name Servers
 # Get the NS to be update in the domain registrar (you can create NS records for the naked-domain (@) or subdomain)
 az network dns zone show -g $RG_SHARED -n $DNS_ZONE --query nameServers -o table
@@ -184,7 +183,7 @@ echo $OCP_SP | jq --arg sub_id $OCP_SUBSCRIPTION_ID '{subscriptionId:$sub_id,cli
 # If you run installer before on the current terminal, it will use the service principal from that location
 # You can delete this file to instruct the installer to prompt for the SP credentials
 
-#***** OCP IPI Configuration *****
+#***** OCP IPI Steps *****
 
 # Starting Installer-Provisioned-Infrastructure
 # Change dir to installer
@@ -192,10 +191,10 @@ cd installer
 # Create a new directory to save installer generated files
 mkdir installation
 
-# Start the IPI process by creating installation configuration file
+# Start the IPI process by creating installation configuration file (for the first time)
 ./openshift-install create install-config --dir=./installation
 # After adjusting the config file to your specs, copy it out of the installation folder for later use
-# If you have a copy of the config, you can copy it to the installation folder
+# For subsequent times, you can copy the saved config to the installation folder
 # cp ./install-config.yaml ./installation
 
 # Note: Credentials saved to ~/.azure/osServicePrincipal.json for the first time your run the installer. 
@@ -206,9 +205,11 @@ mkdir installation
 
 # Advanced configurations editing (modifying kube-proxy for example) can be achieved by generating the installation manifests
 ./openshift-install create manifests --dir=./installation
-# This will generate 2 folders, openshift () and manifests
-# Check also .openshift_install_state.json for a detailed list of configuration and resource names.
-# Updating the InfraID can modify the entire providioned resources names (resource group, load balancers,...)
+# This will generate 2 folders, openshift and manifests and a state file (.openshift_install_state.json)
+# Check .openshift_install_state.json for a detailed list of configuration and resource names.
+# InfraID is generated in the form of <cluster_name>-<random_string> and will be used to prefix the name of generated resources
+# By updating the InfraID, you can modify the entire provisioned resources names (resource group, load balancers,...)
+
 
 # Now the cluster final configuration are saved to install-config.yaml
 
@@ -239,18 +240,18 @@ az vm list-usage -l $OCP_LOCATION -o table
 # https://api.ocp-azure-dev-cluster.YOURDOMAIN.com:6443/
 
 # Normal installer output
-# INFO Consuming "Install Config" from target directory 
+# INFO Consuming Install Config from target directory 
 # INFO Creating infrastructure resources...         
-# INFO Waiting up to 30m0s for the Kubernetes API at https://api.ocp-dev-ae.salesdynamic.com:6443... 
-# INFO API v1.14.6+8d00594 up                       
+# INFO Waiting up to 30m0s for the Kubernetes API at https://api.dev-ocp-weu.YOURDOMAIN.COM:6443... 
+# INFO API v1.16.2 up                               
 # INFO Waiting up to 30m0s for bootstrapping to complete... 
 # INFO Destroying the bootstrap resources...        
-# INFO Waiting up to 30m0s for the cluster at https://api.ocp-dev-ae.salesdynamic.com:6443 to initialize... 
+# INFO Waiting up to 30m0s for the cluster at https://api.dev-ocp-weu.YOURDOMAIN.COM:6443 to initialize... 
 # INFO Waiting up to 10m0s for the openshift-console route to be created... 
 # INFO Install complete!                            
-# INFO To access the cluster as the system:admin user when using 'oc', run 'export KUBECONFIG=/home/localadmin/aks/AKS-SecureCluster/OCP/OCP-Install/installer/auth/kubeconfig' 
-# INFO Access the OpenShift web-console here: https://console-openshift-console.apps.CLUSTER-NAME.DOMAIN-NAME.com 
-# INFO Login to the console with user: kubeadmin, password: STju6-SEzcN-Nw8vT-nxdD8 
+# INFO To access the cluster as the system:admin user when using 'oc', run 'export KUBECONFIG=HOME/OpenShift-On-Azure/ocp-4-3-installation/installer/installation/auth/kubeconfig' 
+# INFO Access the OpenShift web-console here: https://console-openshift-console.apps.dev-ocp-weu.YOURDOMAIN.COM 
+# INFO Login to the console with user: kubeadmin, password: yQLvW-BzmTQ-DY8dx-AZZsY 
 
 # Congratulations
 # Although it says completed, you might need to give it a few mins to warm up :)
@@ -260,7 +261,7 @@ cd ..
 cd client
 
 # this step so you will not need to use oc login (you will have a different path)
-export KUBECONFIG=/home/localadmin/aks/AKS-SecureCluster/OCP/OCP-Install/installer/auth/kubeconfig
+# export KUBECONFIG=[HOME]/installer/auth/kubeconfig
 
 # basic operations
 ./oc version
@@ -285,4 +286,11 @@ cat ./.openshift_install.log
 
 # If cluster needs to be destroyed to be recreated, execute the following:
 ./openshift-install destroy cluster --dir=./installation
-# Note that some files are not removed (like the terrafrom.tfstate) by the installer. You need to remove them manually
+# Note that some files are not removed (like the terraform.tfstate) by the installer. You need to remove them manually
+# Sample distruction output of fully provisioned cluster
+# INFO deleted                                       record=api.dev-ocp-weu
+# INFO deleted                                       record="*.apps.dev-ocp-weu"
+# INFO deleted                                       resource group=dev-ocp-weu-fsnm5-rg
+# INFO deleted                                       appID=GUID
+# INFO deleted                                       appID=GUID
+# INFO deleted                                       appID=GUID
