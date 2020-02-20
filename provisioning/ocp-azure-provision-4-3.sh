@@ -19,14 +19,17 @@ ssh-add ~/.ssh/$CLUSTER_NAME-rsa
 # Obtaining IPI program
 # Download the installer/client program from RedHat (save it to the installation folder you created)
 # https://cloud.redhat.com/openshift/install/azure/installer-provisioned
-# Files will be something like (openshift-client-linux-4.3.0.tar.gz and openshift-install-linux-4.3.0.tar.gz)
+# Files will be something like (openshift-client-linux-4.3.1.tar.gz and openshift-install-linux-4.3.1.tar.gz)
 
 # Extract the installer to installer folder
 mkdir installer
-tar -xvzf ./openshift-install-linux-4.3.0.tar.gz -C ./installer
+tar -xvzf ./openshift-install-linux-4.3.2.tar.gz -C ./installer
+
+# If you wish to have it in PATH libs so you can execute it without having it in folder, run this:
+# sudo cp ./installer/openshift-install /usr/local/bin/
 
 mkdir client
-tar -xvzf ./openshift-client-linux-4.3.0.tar.gz -C ./client
+tar -xvzf ./openshift-client-linux-4.3.1.tar.gz -C ./client
 
 # Get the json pull secret from RedHat (save it to the installation folder you created)
 # https://cloud.redhat.com/openshift/install/azure/installer-provisioned
@@ -62,14 +65,15 @@ clear
 #***** OpenShift Azure Prerequisites *****
 
 # Variables
-OCP_LOCATION=uaenorth
-OCP_LOCATION_CODE=aen
+OCP_LOCATION=westeurope
+OCP_LOCATION_CODE=euw
 SUBSCRIPTION_CODE=mct
 PREFIX=$SUBSCRIPTION_CODE-ocp-dev
 RG_SHARED=$PREFIX-shared-rg
 RG_VNET=$PREFIX-vnet-rg-$OCP_LOCATION_CODE
-DNS_ZONE=subdomain.yourdomain.com
 CLUSTER_NAME=dev-ocp-cluster-$OCP_LOCATION_CODE
+
+DNS_ZONE=subdomain.yourdomain.com
 
 # Create a resource group to host the shared resources (in this setup, we will use it for DNS)
 az group create --name $RG_SHARED --location $OCP_LOCATION
@@ -142,6 +146,32 @@ az network vnet subnet create \
     --name $WRK_SUBNET_NAME \
     --address-prefix $WRK_SUBNET_IP_PREFIX
 
+# Creating also Network Security Groups
+MST_SUBNET_NSG_NAME=$MST_SUBNET_NAME-nsg
+az network nsg create \
+    --name $MST_SUBNET_NSG_NAME \
+    --resource-group $RG_VNET
+
+az network nsg rule create \
+    --resource-group $RG_VNET \
+    --nsg-name $MST_SUBNET_NSG_NAME \
+    --name "apiserver_in" \
+    --priority 101 \
+    --access Allow \
+    --protocol Tcp \
+    --direction Inbound
+    --source-address-prefixes $WRK_SUBNET_IP_PREFIX \
+    --source-port-ranges '*' \
+    --destination-port-ranges 6443 \
+    --destination-address-prefixes '*' \
+    --description "Allow API Server inbound connection (from workers)"
+
+az network vnet subnet update \
+    --resource-group $RG_VNET \
+    --name $MST_SUBNET_NAME \
+    --vnet-name $OCP_VNET_NAME \
+    --network-security-group $MST_SUBNET_NSG_NAME
+
 ### SP Setup
 
 # Create a SP to be used by OpenShift (no permissions is granted here, it will be granted in the next steps)
@@ -183,7 +213,7 @@ echo $OCP_SP | jq --arg sub_id $OCP_SUBSCRIPTION_ID '{subscriptionId:$sub_id,cli
 # If you run installer before on the current terminal, it will use the service principal from that location
 # You can delete this file to instruct the installer to prompt for the SP credentials
 
-#***** OCP IPI Steps *****
+#***** OCP Initial Setup Steps *****
 
 # Starting Installer-Provisioned-Infrastructure
 # Change dir to installer
@@ -193,9 +223,23 @@ mkdir installation
 
 # Start the IPI process by creating installation configuration file (for the first time)
 ./openshift-install create install-config --dir=./installation
+# Sample prompts (Azure subscription details will then be saved and will not be promoted again with future installation using the same machine)
+# ? SSH Public Key /home/user_id/.ssh/id_rsa.pub
+# ? Platform azure
+# ? azure subscription id xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+# ? azure tenant id xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+# ? azure service principal client id xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+# ? azure service principal client secret xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+# INFO Saving user credentials to "/home/user_id/.azure/osServicePrincipal.json"
+# ? Region centralus
+# ? Base Domain example.com
+# ? Cluster Name test
+# ? Pull Secret [? for help]
+
 # After adjusting the config file to your specs, copy it out of the installation folder for later use
 # For subsequent times, you can copy the saved config to the installation folder
 # cp ./install-config.yaml ./installation
+# One key update I usually do the vnet configuration (using the setup we did earlier or existing vnet)
 
 # Note: Credentials saved to ~/.azure/osServicePrincipal.json for the first time your run the installer. 
 # After that it will not ask again for the SP details
@@ -203,15 +247,18 @@ mkdir installation
 # Note: You can review the generated install-config.yaml and tune any parameters before creating the cluster
 # Note: You can re-run create install-config commands multiple times to validate your modifications
 
+# Now the cluster final configuration are saved to install-config.yaml
+
+# To proceed, you have 2 options, proceed with IPI or UPI
+
+########## IPI ##########
+
 # Advanced configurations editing (modifying kube-proxy for example) can be achieved by generating the installation manifests
 ./openshift-install create manifests --dir=./installation
 # This will generate 2 folders, openshift and manifests and a state file (.openshift_install_state.json)
 # Check .openshift_install_state.json for a detailed list of configuration and resource names.
 # InfraID is generated in the form of <cluster_name>-<random_string> and will be used to prefix the name of generated resources
 # By updating the InfraID, you can modify the entire provisioned resources names (resource group, load balancers,...)
-
-
-# Now the cluster final configuration are saved to install-config.yaml
 
 # Create the cluster based on the above configuration
 # change log level to debug to get further details (other options are warn and error)
@@ -253,6 +300,247 @@ az vm list-usage -l $OCP_LOCATION -o table
 # INFO Access the OpenShift web-console here: https://console-openshift-console.apps.dev-ocp-weu.YOURDOMAIN.COM 
 # INFO Login to the console with user: kubeadmin, password: yQLvW-BzmTQ-DY8dx-AZZsY 
 
+########## END IPI ##########
+
+########## UPI ##########
+
+#**** Tooling prerequisites
+# In addition to openshift-install and Azure CLI, we need the following tools:
+# python3
+sudo apt-get update
+sudo apt-get install python3.6
+python3 --version
+
+# pip should be installed as part of python 3.6 :)
+# Installing PyYAML for manipulating yaml files
+pip install -U PyYAML
+
+# jq
+sudo apt-get install jq
+
+# yq
+pip install yq
+#**** END Tooling prerequisites
+
+# I will copy the installer to the our installation folder
+cp ./openshift-install ./installation
+# Change the active folder to the installation
+cd installation
+
+# Get some variables from the install-config.yaml
+export CLUSTER_NAME=`yq -r .metadata.name install-config.yaml`
+export AZURE_REGION=`yq -r .platform.azure.region install-config.yaml`
+export SSH_KEY=`yq -r .sshKey install-config.yaml | xargs`
+export BASE_DOMAIN=`yq -r .baseDomain install-config.yaml`
+export BASE_DOMAIN_RESOURCE_GROUP=`yq -r .platform.azure.baseDomainResourceGroupName install-config.yaml`
+echo "Cluster: $CLUSTER_NAME"
+echo "Region: $AZURE_REGION"
+echo "Domain: $BASE_DOMAIN"
+echo "Domain RG: $BASE_DOMAIN_RESOURCE_GROUP"
+
+# Scale workers down to 0 (will be provisioned by us)
+python3 -c '
+import yaml;
+path = "install-config.yaml";
+data = yaml.load(open(path));
+data["compute"][0]["replicas"] = 0;
+open(path, "w").write(yaml.dump(data, default_flow_style=False))'
+
+# Let the installer to consume the config files and generate deployment manifests
+./openshift-install create manifests
+# This will generate 2 folders, openshift and manifests and a state file (.openshift_install_state.json)
+
+# Under the openshift folder, we will remove all masters and workers machines/machineset definitions
+rm -f openshift/99_openshift-cluster-api_master-machines-*.yaml
+rm -f openshift/99_openshift-cluster-api_worker-machineset-*.yaml
+
+# Probably when we set the compute to 0 you saw a warning that installer will make masters schedulable.
+# We will revert it back to be unscheduable
+python3 -c '
+import yaml;
+path = "manifests/cluster-scheduler-02-config.yml";
+data = yaml.load(open(path));
+data["spec"]["mastersSchedulable"] = False;
+open(path, "w").write(yaml.dump(data, default_flow_style=False))'
+
+# Removing the auto provision of public and private DNS zone from the ingress operator
+python3 -c '
+import yaml;
+path = "manifests/cluster-dns-02-config.yml";
+data = yaml.load(open(path));
+del data["spec"]["publicZone"];
+del data["spec"]["privateZone"];
+open(path, "w").write(yaml.dump(data, default_flow_style=False))'
+
+# Capturing the auto generated infra-id and resource group (you can adjust these at a later step)
+export INFRA_ID=`yq -r '.status.infrastructureName' manifests/cluster-infrastructure-02-config.yml`
+export RESOURCE_GROUP=`yq -r '.status.platformStatus.azure.resourceGroupName' manifests/cluster-infrastructure-02-config.yml`
+
+# As of now, i'm copying some additional files to support the UPI resources provision
+cp -r ../../../provisioning/upi/*.* .
+
+# Controlling resource naming
+# As the installer needs to provision various type of resources, an InfraID is used as prefix in form of (cluster-randomstring)
+# You can find them in metadata.json file
+
+# Making infra-id and resource group adjustments (if needed)
+echo $INFRA_ID
+echo $RESOURCE_GROUP
+# INFRA_ID=
+# RESOURCE_GROUP=
+
+# If you made changes to the infra-id or resource group names, run the following
+python3 setup-manifests.py $RESOURCE_GROUP $INFRA_ID
+
+# Creating ignition files
+./openshift-install create ignition-configs --log-level=debug
+# Sample output
+# INFO Consuming Master Machines from target directory 
+# INFO Consuming Worker Machines from target directory 
+# INFO Consuming Common Manifests from target directory 
+# INFO Consuming Openshift Manifests from target directory
+
+# using tree to plot the folder structure
+tree
+# .
+# ├── 01_vnet.json
+# ├── 02_storage.json
+# ├── 03_infra.json
+# ├── 04_bootstrap.json
+# ├── 05_masters.json
+# ├── 06_workers.json
+# ├── auth
+# │   ├── kubeadmin-password
+# │   └── kubeconfig
+# ├── bootstrap.ign
+# ├── master.ign
+# ├── metadata.json
+# ├── openshift-install
+# ├── setup-manifests.py
+# └── worker.ign
+
+# Creating resource group (skip if you will use existing one)
+# I would recommend using a group that is dedicated for this OCP installation
+az group create --name $RESOURCE_GROUP --location $AZURE_REGION
+
+# Creating a managed identity to be used by OCP operators
+az identity create -g $RESOURCE_GROUP -n ${INFRA_ID}-identity
+
+# Granting the managed identity access to the cluster resource group
+export PRINCIPAL_ID=`az identity show -g $RESOURCE_GROUP -n ${INFRA_ID}-identity --query principalId --out tsv`
+export RESOURCE_GROUP_ID=`az group show -g $RESOURCE_GROUP --query id --out tsv`
+az role assignment create --assignee "$PRINCIPAL_ID" --role 'Contributor' --scope "$RESOURCE_GROUP_ID"
+
+# Incase you are using resources outside the cluster resource, you need to assign the appropriate permissions
+# In my case, the vnet is in a different resource group:
+MST_SUBNET_ID=$(az network vnet subnet show -g $RG_VNET --vnet-name $OCP_VNET_NAME --name $MST_SUBNET_NAME --query id -o tsv)
+WRK_SUBNET_ID=$(az network vnet subnet show -g $RG_VNET --vnet-name $OCP_VNET_NAME --name $WRK_SUBNET_NAME --query id -o tsv)
+az role assignment create --assignee $PRINCIPAL_ID --scope $MST_SUBNET_ID --role "Network Contributor"
+az role assignment create --assignee $PRINCIPAL_ID --scope $WRK_SUBNET_ID --role "Network Contributor"
+
+# Creating Azure Storage to store the ignition configs to be consumed by the installer bootstrap VM
+az storage account create -g $RESOURCE_GROUP --location $AZURE_REGION --name ${CLUSTER_NAME}sa --kind Storage --sku Standard_LRS
+export ACCOUNT_KEY=`az storage account keys list -g $RESOURCE_GROUP --account-name ${CLUSTER_NAME}sa --query "[0].value" -o tsv`
+
+# Get RHCOS VHD URL
+export VHD_URL=`curl -s https://raw.githubusercontent.com/openshift/installer/release-4.3/data/data/rhcos.json | jq -r .azure.url`
+az storage container create --name vhd --account-name ${CLUSTER_NAME}sa
+az storage blob copy start \
+    --account-name ${CLUSTER_NAME}sa \
+    --account-key $ACCOUNT_KEY \
+    --destination-blob "rhcos.vhd" \
+    --destination-container vhd --source-uri "$VHD_URL"
+# Waiting to the upload to finish
+status="unknown"
+while [ "$status" != "success" ]
+do
+  status=`az storage blob show --container-name vhd --name "rhcos.vhd" --account-name ${CLUSTER_NAME}sa --account-key $ACCOUNT_KEY -o tsv --query properties.copy.status`
+  echo $status
+done
+
+# Uploading bootstrap.ign to a new file container
+az storage container create --name files --account-name ${CLUSTER_NAME}sa --public-access blob
+az storage blob upload \
+    --account-name ${CLUSTER_NAME}sa \
+    --account-key $ACCOUNT_KEY \
+    -c "files" -f "bootstrap.ign" -n "bootstrap.ign"
+
+# Creating the OS image to be used for VM provisioning
+export VHD_BLOB_URL=`az storage blob url --account-name ${CLUSTER_NAME}sa --account-key $ACCOUNT_KEY -c vhd -n "rhcos.vhd" -o tsv`
+az group deployment create \
+    -g $RESOURCE_GROUP \
+    --template-file "02_storage.json" \
+    --parameters vhdBlobURL="$VHD_BLOB_URL" \
+    --parameters baseName="$INFRA_ID"
+
+# Private DNS
+az network private-dns zone create -g $RESOURCE_GROUP -n ${CLUSTER_NAME}.${BASE_DOMAIN}
+# Link it to vnet
+az network private-dns link vnet create \
+    -g $RG_VNET \
+    -z ${CLUSTER_NAME}.${BASE_DOMAIN} \
+    -n ${INFRA_ID}-network-link \
+    -v $OCP_VNET_NAME \
+    -e false
+
+# Load balancers
+# You are required to have internal load balancer for the masters (private)
+# The following deployment creates internal load balancer in the masters subnet and 2 A records in the private zone
+az group deployment create \
+    -g $RESOURCE_GROUP \
+    --template-file "03_infra-internal-lb.json" \
+    --parameters privateDNSZoneName="${CLUSTER_NAME}.${BASE_DOMAIN}" \
+    --parameters virtualNetworkName="$OCP_VNET_NAME" \
+    --parameters masterSubnetName="$MST_SUBNET_NAME" \
+    --parameters baseName="$INFRA_ID"
+
+# You can optionally have a public load balancer for the masters if you will use the public DNS
+# The following deployment creates a public-ip and public load balancer
+az group deployment create \
+    -g $RESOURCE_GROUP \
+    --template-file "03_infra-public-lb.json" \
+    --parameters baseName="$INFRA_ID"
+# Adding A record to the public DNS zone
+# If you need a public DNS zone, you should have created one in earlier step
+export PUBLIC_IP=`az network public-ip list -g $RESOURCE_GROUP --query "[?name=='${INFRA_ID}-master-pip'] | [0].ipAddress" -o tsv`
+az network dns record-set a add-record -g $BASE_DOMAIN_RESOURCE_GROUP -z ${BASE_DOMAIN} -n api.${CLUSTER_NAME} -a $PUBLIC_IP --ttl 60
+
+# Launch the bootstrap
+export BOOTSTRAP_URL=`az storage blob url --account-name ${CLUSTER_NAME}sa --account-key $ACCOUNT_KEY -c "files" -n "bootstrap.ign" -o tsv`
+export BOOTSTRAP_IGNITION=`jq -rcnM --arg v "2.2.0" --arg url $BOOTSTRAP_URL '{ignition:{version:$v,config:{replace:{source:$url}}}}' | base64 -w0`
+
+# Bootstrapping for internal only deployment
+az group deployment create -g $RESOURCE_GROUP \
+    --template-file "04_bootstrap-internal-only.json" \
+    --parameters bootstrapIgnition="$BOOTSTRAP_IGNITION" \
+    --parameters sshKeyData="$SSH_KEY" \
+    --parameters virtualNetworkName="$OCP_VNET_NAME" \
+    --parameters masterSubnetName="$MST_SUBNET_NAME" \
+    --parameters baseName="$INFRA_ID"
+
+# Masters ignition for internal only deployment
+export MASTER_IGNITION=`cat master.ign | base64`
+az group deployment create -g $RESOURCE_GROUP \
+    --template-file "05_masters-internal-only.json" \
+    --parameters masterIgnition="$MASTER_IGNITION" \
+    --parameters sshKeyData="$SSH_KEY" \
+    --parameters privateDNSZoneName="${CLUSTER_NAME}.${BASE_DOMAIN}" \
+    --parameters baseName="$INFRA_ID"
+
+openshift-install wait-for bootstrap-complete --log-level debug
+
+# Deleting bootstrap resources
+az network nsg rule delete -g $RESOURCE_GROUP --nsg-name ${INFRA_ID}-controlplane-nsg --name bootstrap_ssh_in
+az vm stop -g $RESOURCE_GROUP --name ${INFRA_ID}-bootstrap
+az vm deallocate -g $RESOURCE_GROUP --name ${INFRA_ID}-bootstrap
+az vm delete -g $RESOURCE_GROUP --name ${INFRA_ID}-bootstrap --yes
+az disk delete -g $RESOURCE_GROUP --name ${INFRA_ID}-bootstrap_OSDisk --no-wait --yes
+az network nic delete -g $RESOURCE_GROUP --name ${INFRA_ID}-bootstrap-nic --no-wait
+az storage blob delete --account-key $ACCOUNT_KEY --account-name ${CLUSTER_NAME}sa --container-name files --name bootstrap.ign
+az network public-ip delete -g $RESOURCE_GROUP --name ${INFRA_ID}-bootstrap-ssh-pip
+
+########## END UPI ##########
+
 # Congratulations
 # Although it says completed, you might need to give it a few mins to warm up :)
 
@@ -287,7 +575,7 @@ cat ./.openshift_install.log
 # If cluster needs to be destroyed to be recreated, execute the following:
 ./openshift-install destroy cluster --dir=./installation
 # Note that some files are not removed (like the terraform.tfstate) by the installer. You need to remove them manually
-# Sample distruction output of fully provisioned cluster
+# Sample destruction output of fully provisioned cluster
 # INFO deleted                                       record=api.dev-ocp-weu
 # INFO deleted                                       record="*.apps.dev-ocp-weu"
 # INFO deleted                                       resource group=dev-ocp-weu-fsnm5-rg
