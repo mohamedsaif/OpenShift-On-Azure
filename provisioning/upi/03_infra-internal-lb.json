@@ -9,6 +9,13 @@
         "description" : "Base name to be used in resource names (usually the cluster's Infra ID)"
       }
     },
+    "virtualNetworkResourceGroup" : {
+      "type" : "string",
+      "minLength" : 1,
+      "metadata" : {
+        "description" : "Resource group name of the OCP virtual network"
+      }
+    },
     "virtualNetworkName" : {
       "type" : "string",
       "minLength" : 1,
@@ -33,7 +40,7 @@
   "variables" : {
     "location" : "[resourceGroup().location]",
     "virtualNetworkName" : "[parameters('virtualNetworkName')]",
-    "virtualNetworkID" : "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]",
+    "virtualNetworkID" : "[resourceId(parameters('virtualNetworkResourceGroup'), 'Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]",
     "masterSubnetName" : "[parameters('masterSubnetName')]",
     "masterSubnetRef" : "[concat(variables('virtualNetworkID'), '/subnets/', variables('masterSubnetName'))]",
     "internalLoadBalancerName" : "[concat(parameters('baseName'), '-internal-lb')]",

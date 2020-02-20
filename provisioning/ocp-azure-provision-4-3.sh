@@ -315,11 +315,18 @@ python3 --version
 # Installing PyYAML for manipulating yaml files
 pip install -U PyYAML
 
+# DotMap
+pip install dotmap
+
 # jq
 sudo apt-get install jq
 
 # yq
 pip install yq
+
+# tree (folder visual rep)
+sudo apt-get install tree
+
 #**** END Tooling prerequisites
 
 # I will copy the installer to the our installation folder
@@ -333,10 +340,18 @@ export AZURE_REGION=`yq -r .platform.azure.region install-config.yaml`
 export SSH_KEY=`yq -r .sshKey install-config.yaml | xargs`
 export BASE_DOMAIN=`yq -r .baseDomain install-config.yaml`
 export BASE_DOMAIN_RESOURCE_GROUP=`yq -r .platform.azure.baseDomainResourceGroupName install-config.yaml`
+export RG_VNET=`yq -r .platform.azure.networkResourceGroupName install-config.yaml`
+export OCP_VNET_NAME=`yq -r .platform.azure.virtualNetwork install-config.yaml`
+export MST_SUBNET_NAME=`yq -r .platform.azure.controlPlaneSubnet install-config.yaml`
+export WRK_SUBNET_NAME=`yq -r .platform.azure.computeSubnet install-config.yaml`
 echo "Cluster: $CLUSTER_NAME"
 echo "Region: $AZURE_REGION"
 echo "Domain: $BASE_DOMAIN"
 echo "Domain RG: $BASE_DOMAIN_RESOURCE_GROUP"
+echo "vNet RG: $RG_VNET"
+echo "vNet Name: $OCP_VNET_NAME"
+echo "Masters Subnet: $MST_SUBNET_NAME"
+echo "Workers : $WRK_SUBNET_NAME"
 
 # Scale workers down to 0 (will be provisioned by us)
 python3 -c '
@@ -375,7 +390,8 @@ open(path, "w").write(yaml.dump(data, default_flow_style=False))'
 # Capturing the auto generated infra-id and resource group (you can adjust these at a later step)
 export INFRA_ID=`yq -r '.status.infrastructureName' manifests/cluster-infrastructure-02-config.yml`
 export RESOURCE_GROUP=`yq -r '.status.platformStatus.azure.resourceGroupName' manifests/cluster-infrastructure-02-config.yml`
-
+echo $INFRA_ID
+echo $RESOURCE_GROUP
 # As of now, i'm copying some additional files to support the UPI resources provision
 cp -r ../../../provisioning/upi/*.* .
 
@@ -384,16 +400,14 @@ cp -r ../../../provisioning/upi/*.* .
 # You can find them in metadata.json file
 
 # Making infra-id and resource group adjustments (if needed)
-echo $INFRA_ID
-echo $RESOURCE_GROUP
-# INFRA_ID=
-# RESOURCE_GROUP=
+# INFRA_ID=ocp-infra
+# RESOURCE_GROUP=ocp-aen-rg
 
 # If you made changes to the infra-id or resource group names, run the following
 python3 setup-manifests.py $RESOURCE_GROUP $INFRA_ID
 
 # Creating ignition files
-./openshift-install create ignition-configs --log-level=debug
+./openshift-install create ignition-configs #--log-level=debug
 # Sample output
 # INFO Consuming Master Machines from target directory 
 # INFO Consuming Worker Machines from target directory 
@@ -405,8 +419,11 @@ tree
 # .
 # ├── 01_vnet.json
 # ├── 02_storage.json
-# ├── 03_infra.json
+# ├── 03_infra-internal-lb.json
+# ├── 03_infra-public-lb.json
+# ├── 04_bootstrap-internal-only.json
 # ├── 04_bootstrap.json
+# ├── 05_masters-internal-only.json
 # ├── 05_masters.json
 # ├── 06_workers.json
 # ├── auth
@@ -439,14 +456,16 @@ az role assignment create --assignee $PRINCIPAL_ID --scope $MST_SUBNET_ID --role
 az role assignment create --assignee $PRINCIPAL_ID --scope $WRK_SUBNET_ID --role "Network Contributor"
 
 # Creating Azure Storage to store the ignition configs to be consumed by the installer bootstrap VM
-az storage account create -g $RESOURCE_GROUP --location $AZURE_REGION --name ${CLUSTER_NAME}sa --kind Storage --sku Standard_LRS
-export ACCOUNT_KEY=`az storage account keys list -g $RESOURCE_GROUP --account-name ${CLUSTER_NAME}sa --query "[0].value" -o tsv`
+# removing any - in the name as it needs to be all lowercase with no special chars
+STORAGE_ACC_NAME="$(tr -d "-" <<<$CLUSTER_NAME)"
+az storage account create -g $RESOURCE_GROUP --location $AZURE_REGION --name $STORAGE_ACC_NAME --kind Storage --sku Standard_LRS
+export ACCOUNT_KEY=`az storage account keys list -g $RESOURCE_GROUP --account-name $STORAGE_ACC_NAME --query "[0].value" -o tsv`
 
 # Get RHCOS VHD URL
 export VHD_URL=`curl -s https://raw.githubusercontent.com/openshift/installer/release-4.3/data/data/rhcos.json | jq -r .azure.url`
-az storage container create --name vhd --account-name ${CLUSTER_NAME}sa
+az storage container create --name vhd --account-name $STORAGE_ACC_NAME
 az storage blob copy start \
-    --account-name ${CLUSTER_NAME}sa \
+    --account-name $STORAGE_ACC_NAME \
     --account-key $ACCOUNT_KEY \
     --destination-blob "rhcos.vhd" \
     --destination-container vhd --source-uri "$VHD_URL"
@@ -454,19 +473,21 @@ az storage blob copy start \
 status="unknown"
 while [ "$status" != "success" ]
 do
-  status=`az storage blob show --container-name vhd --name "rhcos.vhd" --account-name ${CLUSTER_NAME}sa --account-key $ACCOUNT_KEY -o tsv --query properties.copy.status`
-  echo $status
+  status=`az storage blob show --container-name vhd --name "rhcos.vhd" --account-name $STORAGE_ACC_NAME --account-key $ACCOUNT_KEY -o tsv --query properties.copy.status`
+  # progress=`az storage blob show --container-name vhd --name "rhcos.vhd" --account-name $STORAGE_ACC_NAME --account-key $ACCOUNT_KEY -o tsv --query properties.copy.progress`
+  echo $status #"(progress: $progress)"
+  sleep 30
 done
 
 # Uploading bootstrap.ign to a new file container
-az storage container create --name files --account-name ${CLUSTER_NAME}sa --public-access blob
+az storage container create --name files --account-name $STORAGE_ACC_NAME --public-access blob
 az storage blob upload \
-    --account-name ${CLUSTER_NAME}sa \
+    --account-name $STORAGE_ACC_NAME \
     --account-key $ACCOUNT_KEY \
     -c "files" -f "bootstrap.ign" -n "bootstrap.ign"
 
 # Creating the OS image to be used for VM provisioning
-export VHD_BLOB_URL=`az storage blob url --account-name ${CLUSTER_NAME}sa --account-key $ACCOUNT_KEY -c vhd -n "rhcos.vhd" -o tsv`
+export VHD_BLOB_URL=`az storage blob url --account-name $STORAGE_ACC_NAME --account-key $ACCOUNT_KEY -c vhd -n "rhcos.vhd" -o tsv`
 az group deployment create \
     -g $RESOURCE_GROUP \
     --template-file "02_storage.json" \
@@ -476,11 +497,12 @@ az group deployment create \
 # Private DNS
 az network private-dns zone create -g $RESOURCE_GROUP -n ${CLUSTER_NAME}.${BASE_DOMAIN}
 # Link it to vnet
+OCP_VNET_ID=$(az network vnet show -g $RG_VNET --name $OCP_VNET_NAME --query id -o tsv)
 az network private-dns link vnet create \
-    -g $RG_VNET \
+    -g $RESOURCE_GROUP \
     -z ${CLUSTER_NAME}.${BASE_DOMAIN} \
     -n ${INFRA_ID}-network-link \
-    -v $OCP_VNET_NAME \
+    -v $OCP_VNET_ID \
     -e false
 
 # Load balancers
@@ -490,6 +512,7 @@ az group deployment create \
     -g $RESOURCE_GROUP \
     --template-file "03_infra-internal-lb.json" \
     --parameters privateDNSZoneName="${CLUSTER_NAME}.${BASE_DOMAIN}" \
+    --parameters virtualNetworkResourceGroup="$RG_VNET" \
     --parameters virtualNetworkName="$OCP_VNET_NAME" \
     --parameters masterSubnetName="$MST_SUBNET_NAME" \
     --parameters baseName="$INFRA_ID"
@@ -506,7 +529,7 @@ export PUBLIC_IP=`az network public-ip list -g $RESOURCE_GROUP --query "[?name==
 az network dns record-set a add-record -g $BASE_DOMAIN_RESOURCE_GROUP -z ${BASE_DOMAIN} -n api.${CLUSTER_NAME} -a $PUBLIC_IP --ttl 60
 
 # Launch the bootstrap
-export BOOTSTRAP_URL=`az storage blob url --account-name ${CLUSTER_NAME}sa --account-key $ACCOUNT_KEY -c "files" -n "bootstrap.ign" -o tsv`
+export BOOTSTRAP_URL=`az storage blob url --account-name $STORAGE_ACC_NAME --account-key $ACCOUNT_KEY -c "files" -n "bootstrap.ign" -o tsv`
 export BOOTSTRAP_IGNITION=`jq -rcnM --arg v "2.2.0" --arg url $BOOTSTRAP_URL '{ignition:{version:$v,config:{replace:{source:$url}}}}' | base64 -w0`
 
 # Bootstrapping for internal only deployment
@@ -514,6 +537,7 @@ az group deployment create -g $RESOURCE_GROUP \
     --template-file "04_bootstrap-internal-only.json" \
     --parameters bootstrapIgnition="$BOOTSTRAP_IGNITION" \
     --parameters sshKeyData="$SSH_KEY" \
+    --parameters virtualNetworkResourceGroup="$RG_VNET" \
     --parameters virtualNetworkName="$OCP_VNET_NAME" \
     --parameters masterSubnetName="$MST_SUBNET_NAME" \
     --parameters baseName="$INFRA_ID"
@@ -523,10 +547,17 @@ export MASTER_IGNITION=`cat master.ign | base64`
 az group deployment create -g $RESOURCE_GROUP \
     --template-file "05_masters-internal-only.json" \
     --parameters masterIgnition="$MASTER_IGNITION" \
+    --parameters numberOfMasters=3 \
+    --parameters masterVMSize="Standard_D4s_v3" \
     --parameters sshKeyData="$SSH_KEY" \
     --parameters privateDNSZoneName="${CLUSTER_NAME}.${BASE_DOMAIN}" \
+    --parameters virtualNetworkResourceGroup="$RG_VNET" \
+    --parameters virtualNetworkName="$OCP_VNET_NAME" \
+    --parameters masterSubnetName="$MST_SUBNET_NAME" \
     --parameters baseName="$INFRA_ID"
 
+# Waiting for the bootstrap to finish
+# This option will work only if you have put a public DNS
 openshift-install wait-for bootstrap-complete --log-level debug
 
 # Deleting bootstrap resources
@@ -536,7 +567,7 @@ az vm deallocate -g $RESOURCE_GROUP --name ${INFRA_ID}-bootstrap
 az vm delete -g $RESOURCE_GROUP --name ${INFRA_ID}-bootstrap --yes
 az disk delete -g $RESOURCE_GROUP --name ${INFRA_ID}-bootstrap_OSDisk --no-wait --yes
 az network nic delete -g $RESOURCE_GROUP --name ${INFRA_ID}-bootstrap-nic --no-wait
-az storage blob delete --account-key $ACCOUNT_KEY --account-name ${CLUSTER_NAME}sa --container-name files --name bootstrap.ign
+az storage blob delete --account-key $ACCOUNT_KEY --account-name $STORAGE_ACC_NAME --container-name files --name bootstrap.ign
 az network public-ip delete -g $RESOURCE_GROUP --name ${INFRA_ID}-bootstrap-ssh-pip
 
 ########## END UPI ##########
