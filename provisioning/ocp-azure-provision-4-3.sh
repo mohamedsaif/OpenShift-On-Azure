@@ -1,3 +1,7 @@
+#***** Installation Terminal Setup *****
+
+# NOTES:
+# UPI part still under development (I need to iron some details).
 
 #***** Installation Terminal Setup *****
 
@@ -19,7 +23,7 @@ ssh-add ~/.ssh/$CLUSTER_NAME-rsa
 # Obtaining IPI program
 # Download the installer/client program from RedHat (save it to the installation folder you created)
 # https://cloud.redhat.com/openshift/install/azure/installer-provisioned
-# Files will be something like (openshift-client-linux-4.3.1.tar.gz and openshift-install-linux-4.3.1.tar.gz)
+# Files will be something like (openshift-client-linux-4.3.2.tar.gz and openshift-install-linux-4.3.2.tar.gz)
 
 # Extract the installer to installer folder
 mkdir installer
@@ -29,7 +33,7 @@ tar -xvzf ./openshift-install-linux-4.3.2.tar.gz -C ./installer
 # sudo cp ./installer/openshift-install /usr/local/bin/
 
 mkdir client
-tar -xvzf ./openshift-client-linux-4.3.1.tar.gz -C ./client
+tar -xvzf ./openshift-client-linux-4.3.2.tar.gz -C ./client
 
 # Get the json pull secret from RedHat (save it to the installation folder you created)
 # https://cloud.redhat.com/openshift/install/azure/installer-provisioned
