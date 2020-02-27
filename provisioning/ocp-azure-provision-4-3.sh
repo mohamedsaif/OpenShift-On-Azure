@@ -2,6 +2,7 @@
 
 # NOTES:
 # UPI part still under development (I need to iron some details).
+# If you will use (internal) OCP deployment, I would highly recommend doing this from a jump box deployed in the OCP cluster masters subnet.
 
 #***** Installation Terminal Setup *****
 
