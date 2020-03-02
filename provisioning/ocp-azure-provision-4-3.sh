@@ -2,7 +2,7 @@
 
 # NOTES:
 # UPI part still under development (I need to iron some details).
-# If you will use (internal) OCP deployment, I would highly recommend doing this from a jump box deployed in the OCP cluster masters subnet.
+# If you will use (internal) OCP deployment, I would highly recommend doing this from a jump box deployed in the OCP cluster virtual network.
 
 #***** Installation Terminal Setup *****
 
@@ -76,6 +76,7 @@ SUBSCRIPTION_CODE=mct
 PREFIX=$SUBSCRIPTION_CODE-ocp-dev
 RG_SHARED=$PREFIX-shared-rg
 RG_VNET=$PREFIX-vnet-rg-$OCP_LOCATION_CODE
+RG_INSTALLER=$PREFIX-installer-rg-$OCP_LOCATION_CODE
 CLUSTER_NAME=dev-ocp-cluster-$OCP_LOCATION_CODE
 
 DNS_ZONE=subdomain.yourdomain.com
@@ -85,6 +86,9 @@ az group create --name $RG_SHARED --location $OCP_LOCATION
 
 # Create a resource group to host the network resources (in this setup, we will use it for vnet)
 az group create --name $RG_VNET --location $OCP_LOCATION
+
+# Create a resource group to host the network resources (in this setup, we will use it for vnet)
+az group create --name $RG_INSTALLER --location $OCP_LOCATION
 
 ### DNS Setup
 
@@ -120,7 +124,8 @@ nslookup -type=SOA $DNS_ZONE
 
 ### End DNS Setup
 
-### vnet setup
+### OPTIONAL: virtual network setup
+# If you have existing vnet, no need to create one, just update the below params with your network configs
 # I will be creating the following cluster networking
 # average of 50+- pods per node and will be running across 40+- nodes
 # Address space: 10.165.0.0/16
@@ -164,18 +169,24 @@ az network nsg rule create \
     --priority 101 \
     --access Allow \
     --protocol Tcp \
-    --direction Inbound
+    --direction Inbound \
     --source-address-prefixes $WRK_SUBNET_IP_PREFIX \
     --source-port-ranges '*' \
     --destination-port-ranges 6443 \
     --destination-address-prefixes '*' \
     --description "Allow API Server inbound connection (from workers)"
 
-az network vnet subnet update \
+# If you will use the installer-jumpbox VM, you can create a separate subnet for it
+INST_SUBNET_NAME="inst-subnet"
+INST_SUBNET_IP_PREFIX="10.165.2.0/24"
+az network vnet subnet create \
     --resource-group $RG_VNET \
-    --name $MST_SUBNET_NAME \
     --vnet-name $OCP_VNET_NAME \
-    --network-security-group $MST_SUBNET_NSG_NAME
+    --name $INST_SUBNET_NAME \
+    --address-prefix $INST_SUBNET_IP_PREFIX
+
+# Provision the jumpbox
+# Provisioning of the jumpbox is located in installer-jumpbox.sh
 
 ### SP Setup
 
