@@ -12,7 +12,7 @@ INSTALLER_PIP=$(az vm create \
     --admin-username localadmin \
     --ssh-key-values ~/.ssh/installer-box-rsa.pub \
     --query publicIpAddress -o tsv)
-
+export INSTALLER_PIP=$INSTALLER_PIP >> ~/.bashrc
 # If you have an existing jumpbox, just set the public publicIpAddress
 # INSTALLER_PIP=YOUR_IP
 

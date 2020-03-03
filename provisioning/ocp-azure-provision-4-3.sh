@@ -177,6 +177,7 @@ az network nsg rule create \
     --description "Allow API Server inbound connection (from workers)"
 
 # If you will use the installer-jumpbox VM, you can create a separate subnet for it
+# It will allow you to delete it (or disable it via Network Security Groups after the cluster provisions)
 INST_SUBNET_NAME="inst-subnet"
 INST_SUBNET_IP_PREFIX="10.165.2.0/24"
 az network vnet subnet create \
@@ -237,7 +238,8 @@ cd installer
 # Create a new directory to save installer generated files
 mkdir installation
 
-# Start the IPI process by creating installation configuration file (for the first time)
+# Start the IPI process by creating installation configuration file 
+# FIRST TIME: run the create install-config to generate the initial configs
 ./openshift-install create install-config --dir=./installation
 # Sample prompts (Azure subscription details will then be saved and will not be promoted again with future installation using the same machine)
 # ? SSH Public Key /home/user_id/.ssh/id_rsa.pub
@@ -329,7 +331,7 @@ python3 --version
 
 # pip should be installed as part of python 3.6 :)
 # Installing PyYAML for manipulating yaml files
-pip install -U PyYAML
+sudo pip install -U PyYAML
 
 # DotMap
 pip install dotmap
@@ -338,10 +340,13 @@ pip install dotmap
 sudo apt-get install jq
 
 # yq
-pip install yq
+sudo pip install yq
 
 # tree (folder visual rep)
 sudo apt-get install tree
+
+# Note: If you faced issues with unrecognized commands, you might consider restarting the VM for some of the tooling to picked up.
+sudo apt-get update
 
 #**** END Tooling prerequisites
 
