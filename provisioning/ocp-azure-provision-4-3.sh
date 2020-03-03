@@ -414,7 +414,7 @@ export RESOURCE_GROUP=`yq -r '.status.platformStatus.azure.resourceGroupName' ma
 echo $INFRA_ID
 echo $RESOURCE_GROUP
 # As of now, i'm copying some additional files to support the UPI resources provision
-cp -r ../../../provisioning/upi/*.* .
+cp -r ../../../provisioning/upi/ .
 
 # Controlling resource naming
 # As the installer needs to provision various type of resources, an InfraID is used as prefix in form of (cluster-randomstring)
@@ -425,7 +425,7 @@ cp -r ../../../provisioning/upi/*.* .
 # RESOURCE_GROUP=ocp-aen-rg
 
 # If you made changes to the infra-id or resource group names, run the following
-python3 setup-manifests.py $RESOURCE_GROUP $INFRA_ID
+python3 ./upi/setup-manifests.py $RESOURCE_GROUP $INFRA_ID
 
 # Creating ignition files
 ./openshift-install create ignition-configs #--log-level=debug
@@ -438,15 +438,6 @@ python3 setup-manifests.py $RESOURCE_GROUP $INFRA_ID
 # using tree to plot the folder structure
 tree
 # .
-# ├── 01_vnet.json
-# ├── 02_storage.json
-# ├── 03_infra-internal-lb.json
-# ├── 03_infra-public-lb.json
-# ├── 04_bootstrap-internal-only.json
-# ├── 04_bootstrap.json
-# ├── 05_masters-internal-only.json
-# ├── 05_masters.json
-# ├── 06_workers.json
 # ├── auth
 # │   ├── kubeadmin-password
 # │   └── kubeconfig
@@ -454,7 +445,22 @@ tree
 # ├── master.ign
 # ├── metadata.json
 # ├── openshift-install
-# ├── setup-manifests.py
+# ├── upi
+# │   ├── 01_vnet.json
+# │   ├── 02_storage.json
+# │   ├── 03_infra-internal-lb.json
+# │   ├── 03_infra-public-lb.json
+# │   ├── 04_bootstrap-internal-only.json
+# │   ├── 04_bootstrap.json
+# │   ├── 05_masters-internal-only.json
+# │   ├── 05_masters.json
+# │   ├── 06_workers.json
+# │   ├── dotmap
+# │   │   ├── __init__.py
+# │   │   ├── __pycache__
+# │   │   │   └── __init__.cpython-36.pyc
+# │   │   └── test.py
+# │   └── setup-manifests.py
 # └── worker.ign
 
 # Creating resource group (skip if you will use existing one)
@@ -511,7 +517,7 @@ az storage blob upload \
 export VHD_BLOB_URL=`az storage blob url --account-name $STORAGE_ACC_NAME --account-key $ACCOUNT_KEY -c vhd -n "rhcos.vhd" -o tsv`
 az group deployment create \
     -g $RESOURCE_GROUP \
-    --template-file "02_storage.json" \
+    --template-file "upi/02_storage.json" \
     --parameters vhdBlobURL="$VHD_BLOB_URL" \
     --parameters baseName="$INFRA_ID"
 
@@ -527,22 +533,22 @@ az network private-dns link vnet create \
     -e false
 
 # Load balancers
-# You are required to have internal load balancer for the masters (private)
+# INTERNAL DNS ONLY: You are required to have internal load balancer for the masters (private)
 # The following deployment creates internal load balancer in the masters subnet and 2 A records in the private zone
 az group deployment create \
     -g $RESOURCE_GROUP \
-    --template-file "03_infra-internal-lb.json" \
+    --template-file "upi/03_infra-internal-lb.json" \
     --parameters privateDNSZoneName="${CLUSTER_NAME}.${BASE_DOMAIN}" \
     --parameters virtualNetworkResourceGroup="$RG_VNET" \
     --parameters virtualNetworkName="$OCP_VNET_NAME" \
     --parameters masterSubnetName="$MST_SUBNET_NAME" \
     --parameters baseName="$INFRA_ID"
 
-# You can optionally have a public load balancer for the masters if you will use the public DNS
+# PUBLIC DNS: You can optionally have a public load balancer for the masters if you will use the public DNS
 # The following deployment creates a public-ip and public load balancer
 az group deployment create \
     -g $RESOURCE_GROUP \
-    --template-file "03_infra-public-lb.json" \
+    --template-file "upi/03_infra-public-lb.json" \
     --parameters baseName="$INFRA_ID"
 # Adding A record to the public DNS zone
 # If you need a public DNS zone, you should have created one in earlier step
@@ -555,7 +561,7 @@ export BOOTSTRAP_IGNITION=`jq -rcnM --arg v "2.2.0" --arg url $BOOTSTRAP_URL '{i
 
 # Bootstrapping for internal only deployment
 az group deployment create -g $RESOURCE_GROUP \
-    --template-file "04_bootstrap-internal-only.json" \
+    --template-file "upi/04_bootstrap-internal-only.json" \
     --parameters bootstrapIgnition="$BOOTSTRAP_IGNITION" \
     --parameters sshKeyData="$SSH_KEY" \
     --parameters virtualNetworkResourceGroup="$RG_VNET" \
@@ -566,7 +572,7 @@ az group deployment create -g $RESOURCE_GROUP \
 # Masters ignition for internal only deployment
 export MASTER_IGNITION=`cat master.ign | base64`
 az group deployment create -g $RESOURCE_GROUP \
-    --template-file "05_masters-internal-only.json" \
+    --template-file "upi/05_masters-internal-only.json" \
     --parameters masterIgnition="$MASTER_IGNITION" \
     --parameters numberOfMasters=3 \
     --parameters masterVMSize="Standard_D4s_v3" \
@@ -578,8 +584,8 @@ az group deployment create -g $RESOURCE_GROUP \
     --parameters baseName="$INFRA_ID"
 
 # Waiting for the bootstrap to finish
-# This option will work only if you have put a public DNS
-openshift-install wait-for bootstrap-complete --log-level debug
+# This option will work only if you have put a public DNS or you are running from a jumpbox VM in the same vnet
+./openshift-install wait-for bootstrap-complete --log-level debug
 
 # Deleting bootstrap resources
 az network nsg rule delete -g $RESOURCE_GROUP --nsg-name ${INFRA_ID}-controlplane-nsg --name bootstrap_ssh_in
