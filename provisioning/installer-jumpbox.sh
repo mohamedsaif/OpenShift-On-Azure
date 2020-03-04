@@ -33,6 +33,12 @@ ssh -i ~/.ssh/installer-box-rsa localadmin@$INSTALLER_PIP
 # Installing Azure CLI
 curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 
+# Adding Azure DNS server (to handle the private name resoultion)
+sudo chmod o+r /etc/resolv.conf
+
+# Edit the server name to use Azure's DNS server fixed IP 168.63.129.16 (press i to be in insert mode, then ESC and type :wq to save and exit)
+sudo vi /etc/resolv.conf
+
 # Login to Azure
 az login
 

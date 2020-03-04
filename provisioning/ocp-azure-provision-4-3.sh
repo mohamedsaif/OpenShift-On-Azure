@@ -230,7 +230,7 @@ tar -xvzf ./openshift-install-linux-4.3.3.tar.gz -C ./installer
 # sudo cp ./installer/openshift-install /usr/local/bin/
 
 mkdir client
-wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.3.3/openshift-install-mac-4.3.3.tar.gz
+wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.3.3/openshift-client-linux-4.3.3.tar.gz
 tar -xvzf ./openshift-client-linux-4.3.3.tar.gz -C ./client
 
 # Get the json pull secret from RedHat (save it to the installation folder you created)
@@ -634,8 +634,8 @@ az network public-ip delete -g $RESOURCE_GROUP --name ${INFRA_ID}-bootstrap-ssh-
 cd ..
 cd client
 
-# this step so you will not need to use oc login (you will have a different path)
-# export KUBECONFIG=[HOME]/installer/auth/kubeconfig
+# this step so you will not need to use oc login (you might have a different path)
+# export KUBECONFIG=~/ocp-installer/installer/installation/auth/kubeconfig
 
 # basic operations
 ./oc version
