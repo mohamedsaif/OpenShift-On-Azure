@@ -22,6 +22,7 @@ export INSTALLER_PIP=$INSTALLER_PIP >> ~/.bashrc
 
 # Zip the installation files that you want to copy to the jumpbox
 # make sure you are in the right folder on the local machine
+cd provisioning
 tar -pvczf ocp-installation.tar.gz .
 
 scp -i ~/.ssh/installer-box-rsa ./ocp-installation.tar.gz localadmin@$INSTALLER_PIP:~/ocp.tar.gz

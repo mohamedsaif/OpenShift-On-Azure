@@ -205,8 +205,9 @@ echo $OCP_SP | jq --arg sub_id $OCP_SUBSCRIPTION_ID '{subscriptionId:$sub_id,cli
 # jq (https://stedolan.github.io/jq/)
 
 # Create a directory for your installation
-mkdir ocp
-cd ocp
+# NOTE: If you are using jump box, you already created and copied the provisioning files
+mkdir ocp-installer
+cd ocp-installer
 
 # Generate SSH key if needed:
 ssh-keygen -f ~/.ssh/$CLUSTER_NAME-rsa -t rsa -N ''
@@ -248,8 +249,8 @@ cd installer
 # Create a new directory to save installer generated files
 mkdir installation
 
-# Start the IPI process by creating installation configuration file 
-# FIRST TIME: run the create install-config to generate the initial configs
+### Preparing install-config.yaml file
+# NEW CONFIG: run the create install-config to generate the initial configs
 ./openshift-install create install-config --dir=./installation
 # Sample prompts (Azure subscription details will then be saved and will not be promoted again with future installation using the same machine)
 # ? SSH Public Key /home/user_id/.ssh/id_rsa.pub
@@ -259,18 +260,24 @@ mkdir installation
 # ? azure service principal client id xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 # ? azure service principal client secret xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 # INFO Saving user credentials to "/home/user_id/.azure/osServicePrincipal.json"
-# ? Region centralus
+# ? Region westeurope
 # ? Base Domain example.com
 # ? Cluster Name test
 # ? Pull Secret [? for help]
 
-# After adjusting the config file to your specs, copy it out of the installation folder for later use
+# EXISTING CONFIG
+# I would assume you have the prepared config in the installer folder
+# If you have the file somewhere else, just copy the content to the vi
+vi install-config.yaml
+# After adjusting the config file to your specs, copy it out of the (installation) folder
 # For subsequent times, you can copy the saved config to the installation folder
-# cp ./install-config.yaml ./installation
+cp ./install-config.yaml ./installation
 # One key update I usually do the vnet configuration (using the setup we did earlier or existing vnet)
 
-# Note: Credentials saved to ~/.azure/osServicePrincipal.json for the first time your run the installer. 
+# Note: Credentials saved to ~/.azure/osServicePrincipal.json for the first time your run the installer create config. 
 # After that it will not ask again for the SP details
+# If you have it created some where before, just use again vi to make sure it is correct (or copy the content to the new terminal)
+vi ~/.azure/osServicePrincipal.json
 
 # Note: You can review the generated install-config.yaml and tune any parameters before creating the cluster
 # Note: You can re-run create install-config commands multiple times to validate your modifications
@@ -595,7 +602,7 @@ az group deployment create -g $RESOURCE_GROUP \
 
 # Waiting for the bootstrap to finish
 # This option will work only if you have put a public DNS or you are running from a jumpbox VM in the same vnet
-./openshift-install wait-for bootstrap-complete --log-level debug
+./openshift-install wait-for bootstrap-complete --log-level debug --dir=./installation
 
 # Deleting bootstrap resources
 az network nsg rule delete -g $RESOURCE_GROUP --nsg-name ${INFRA_ID}-controlplane-nsg --name bootstrap_ssh_in
