@@ -3,46 +3,7 @@
 # NOTES:
 # UPI part still under development (I need to iron some details).
 # If you will use (internal) OCP deployment, I would highly recommend doing this from a jump box deployed in the OCP cluster virtual network.
-
-#***** Installation Terminal Setup *****
-
-# External CLI tools needed:
-# Azure CLI (https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
-# jq (https://stedolan.github.io/jq/)
-
-# Create a directory for your installation
-mkdir ocp-4-3-installation
-cd ocp-4-3-installation
-
-# Generate SSH key if needed:
-ssh-keygen -f ~/.ssh/$CLUSTER_NAME-rsa -t rsa -N ''
-
-# Starting ssh-agent and add the key to it (used for diagnostic access to the cluster)
-eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/$CLUSTER_NAME-rsa
-
-# Obtaining IPI program
-# Download the installer/client program from RedHat (save it to the installation folder you created)
-# https://cloud.redhat.com/openshift/install/azure/installer-provisioned
-# Files will be something like (openshift-client-linux-4.3.2.tar.gz and openshift-install-linux-4.3.2.tar.gz)
-
-# Extract the installer to installer folder
-mkdir installer
-tar -xvzf ./openshift-install-linux-4.3.2.tar.gz -C ./installer
-
-# If you wish to have it in PATH libs so you can execute it without having it in folder, run this:
-# sudo cp ./installer/openshift-install /usr/local/bin/
-
-mkdir client
-tar -xvzf ./openshift-client-linux-4.3.2.tar.gz -C ./client
-
-# Get the json pull secret from RedHat (save it to the installation folder you created)
-# https://cloud.redhat.com/openshift/install/azure/installer-provisioned
-# To save the pull secret, you can use vi
-vi pull-secret.json
-# Tips: type i to enter the insert mode, paste the secret, press escape and then type :wq (write and quit)
-
-#***** END Installation Terminal Setup *****
+# You can provision the jump box after creating (or selecting preexisting) virtual network
 
 #***** Login to Azure Subscription *****
 
@@ -63,6 +24,9 @@ OCP_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
 echo $OCP_TENANT_ID
 echo $OCP_SUBSCRIPTION_ID
 
+export OCP_TENANT_ID=$OCP_TENANT_ID >> ~/.bashrc
+export OCP_SUBSCRIPTION_ID=$OCP_SUBSCRIPTION_ID >> ~/.bashrc
+
 clear
 
 #***** END Login to Azure Subscription *****
@@ -70,35 +34,39 @@ clear
 #***** OpenShift Azure Prerequisites *****
 
 # Variables
+# NOTE: If you are using existing resources like vnet, please make sure to update the values to the correct names and skip the creation steps
 OCP_LOCATION=westeurope
 OCP_LOCATION_CODE=euw
 SUBSCRIPTION_CODE=mct
 PREFIX=$SUBSCRIPTION_CODE-ocp-dev
 RG_SHARED=$PREFIX-shared-rg
+RG_PUBLIC_DNS=$SUBSCRIPTION_CODE-dns-shared-rg
 RG_VNET=$PREFIX-vnet-rg-$OCP_LOCATION_CODE
-RG_INSTALLER=$PREFIX-installer-rg-$OCP_LOCATION_CODE
-CLUSTER_NAME=dev-ocp-cluster-$OCP_LOCATION_CODE
+CLUSTER_NAME=dev-ocp-int-$OCP_LOCATION_CODE
 
-DNS_ZONE=subdomain.yourdomain.com
+DNS_ZONE=[subdomain].yourdomain.com
 
-# Create a resource group to host the shared resources (in this setup, we will use it for DNS)
+# OPTIONAL (UPI): Create a resource group to host the shared installation resources for UPI (like storage for OS images)
 az group create --name $RG_SHARED --location $OCP_LOCATION
 
 # Create a resource group to host the network resources (in this setup, we will use it for vnet)
+# If you have existing vnet, make sure that RG_VNET is set to its name
 az group create --name $RG_VNET --location $OCP_LOCATION
 
-# Create a resource group to host the network resources (in this setup, we will use it for vnet)
-az group create --name $RG_INSTALLER --location $OCP_LOCATION
+# OPTIONAL (public DNS): Create a resource group to host the public DNS (if you are using one)
+az group create --name $RG_PUBLIC_DNS --location $OCP_LOCATION
 
-### DNS Setup
+# For the cluster resource group, it will depend on your way of installation (IPI will create one, UPI you will create one later)
+
+### (OPTIONAL) Public DNS Setup
 
 # OPTION 1: Full delegation of a root domain to Azure DNS Zone
 # Create a DNS Zone (for naked or subdomain)
-az network dns zone create -g $RG_SHARED -n $DNS_ZONE
+az network dns zone create -g $RG_PUBLIC_DNS -n $DNS_ZONE
 
 # Delegate the DNS Zone by updating the domain registrar Name Servers to point at Azure DNS Zone Name Servers
 # Get the NS to be update in the domain registrar (you can create NS records for the naked-domain (@) or subdomain)
-az network dns zone show -g $RG_SHARED -n $DNS_ZONE --query nameServers -o table
+az network dns zone show -g $RG_PUBLIC_DNS -n $DNS_ZONE --query nameServers -o table
 
 # Visit the registrar to update the NS records
 
@@ -124,7 +92,7 @@ nslookup -type=SOA $DNS_ZONE
 
 ### End DNS Setup
 
-### OPTIONAL: virtual network setup
+### Virtual network setup
 # If you have existing vnet, no need to create one, just update the below params with your network configs
 # I will be creating the following cluster networking
 # average of 50+- pods per node and will be running across 40+- nodes
@@ -186,9 +154,6 @@ az network vnet subnet create \
     --name $INST_SUBNET_NAME \
     --address-prefix $INST_SUBNET_IP_PREFIX
 
-# Provision the jumpbox
-# Provisioning of the jumpbox is located in installer-jumpbox.sh
-
 ### SP Setup
 
 # Create a SP to be used by OpenShift (no permissions is granted here, it will be granted in the next steps)
@@ -229,6 +194,51 @@ echo $OCP_SP | jq --arg sub_id $OCP_SUBSCRIPTION_ID '{subscriptionId:$sub_id,cli
 # OCP IPI installer rely on SP credentials stored in (~/.azure/osServicePrincipal.json). 
 # If you run installer before on the current terminal, it will use the service principal from that location
 # You can delete this file to instruct the installer to prompt for the SP credentials
+
+#***** Installation Terminal Setup *****
+
+# Provisioning the jumpbox
+# Provisioning of the jumpbox is located in installer-jumpbox.sh
+
+# External CLI tools needed:
+# Azure CLI (https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
+# jq (https://stedolan.github.io/jq/)
+
+# Create a directory for your installation
+mkdir ocp
+cd ocp
+
+# Generate SSH key if needed:
+ssh-keygen -f ~/.ssh/$CLUSTER_NAME-rsa -t rsa -N ''
+
+# Starting ssh-agent and add the key to it (used for diagnostic access to the cluster)
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/$CLUSTER_NAME-rsa
+
+# Obtaining IPI program
+# Download the installer/client program from RedHat (save it to the installation folder you created)
+# https://cloud.redhat.com/openshift/install/azure/installer-provisioned
+# Files will be something like (openshift-client-linux-4.3.2.tar.gz and openshift-install-linux-4.3.2.tar.gz)
+
+# Extract the installer to installer folder
+mkdir installer
+wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.3.3/openshift-install-linux-4.3.3.tar.gz
+tar -xvzf ./openshift-install-linux-4.3.3.tar.gz -C ./installer
+
+# If you wish to have it in PATH libs so you can execute it without having it in folder, run this:
+# sudo cp ./installer/openshift-install /usr/local/bin/
+
+mkdir client
+wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.3.3/openshift-install-mac-4.3.3.tar.gz
+tar -xvzf ./openshift-client-linux-4.3.3.tar.gz -C ./client
+
+# Get the json pull secret from RedHat (save it to the installation folder you created)
+# https://cloud.redhat.com/openshift/install/azure/installer-provisioned
+# To save the pull secret, you can use vi
+vi pull-secret.json
+# Tips: type i to enter the insert mode, paste the secret, press escape and then type :wq (write and quit)
+
+#***** END Installation Terminal Setup *****
 
 #***** OCP Initial Setup Steps *****
 

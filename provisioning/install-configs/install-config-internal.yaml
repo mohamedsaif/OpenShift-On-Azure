@@ -1,0 +1,43 @@
+apiVersion: v1
+baseDomain: YOURDOMAIN.COM
+compute:
+- hyperthreading: Enabled
+  name: worker
+  platform:
+    azure:
+      osDisk:
+        diskSizeGB: 120 
+      type: Standard_D4s_v3
+  replicas: 3
+controlPlane:
+  hyperthreading: Enabled
+  name: master
+  platform:
+    azure:
+      osDisk:
+        diskSizeGB: 120 
+      type: Standard_D4s_v3
+  replicas: 3
+metadata:
+  creationTimestamp: null
+  name: ocp-dev-euw
+networking:
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  machineCIDR: 10.165.0.0/23
+  networkType: OpenShiftSDN
+  serviceNetwork:
+  - 172.30.0.0/16
+platform:
+  azure:
+    baseDomainResourceGroupName: RG_DNS
+    region: uaenorth
+    networkResourceGroupName: RG_VNET
+    virtualNetwork: VNET
+    controlPlaneSubnet: mgm-subnet
+    computeSubnet: pods-subnet
+publish: Internal
+pullSecret: '{"auths":{"cloud.openshift.com": }}'
+sshKey: |
+  ssh-rsa SOMETHING
