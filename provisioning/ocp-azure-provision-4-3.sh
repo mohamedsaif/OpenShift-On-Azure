@@ -335,6 +335,17 @@ az vm list-usage -l $OCP_LOCATION -o table
 # INFO Access the OpenShift web-console here: https://console-openshift-console.apps.dev-ocp-weu.YOURDOMAIN.COM 
 # INFO Login to the console with user: kubeadmin, password: yQLvW-BzmTQ-DY8dx-AZZsY 
 
+# If cluster needs to be destroyed to be recreated, execute the following:
+./openshift-install destroy cluster --dir=./installation
+# Note that some files are not removed (like the terraform.tfstate) by the installer. You need to remove them manually
+# Sample destruction output of fully provisioned cluster
+# INFO deleted                                       record=api.dev-ocp-weu
+# INFO deleted                                       record="*.apps.dev-ocp-weu"
+# INFO deleted                                       resource group=dev-ocp-weu-fsnm5-rg
+# INFO deleted                                       appID=GUID
+# INFO deleted                                       appID=GUID
+# INFO deleted                                       appID=GUID
+
 ########## END IPI ##########
 
 ########## UPI ##########
@@ -646,14 +657,3 @@ cd client
 
 # if you are interested to look behind the scene on what is happing, access the logs
 cat ./.openshift_install.log
-
-# If cluster needs to be destroyed to be recreated, execute the following:
-./openshift-install destroy cluster --dir=./installation
-# Note that some files are not removed (like the terraform.tfstate) by the installer. You need to remove them manually
-# Sample destruction output of fully provisioned cluster
-# INFO deleted                                       record=api.dev-ocp-weu
-# INFO deleted                                       record="*.apps.dev-ocp-weu"
-# INFO deleted                                       resource group=dev-ocp-weu-fsnm5-rg
-# INFO deleted                                       appID=GUID
-# INFO deleted                                       appID=GUID
-# INFO deleted                                       appID=GUID
