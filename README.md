@@ -86,6 +86,8 @@ If you are using a local dev machine, make sure to follow the installation steps
 
 To use Red Hat OCP installer, you need to prepare in advance few prerequisites before starting the installation process.
 
+This guide only focuses on the prerequisites that is shared between IPI and UPI methods.
+
 ### [Installer Configuration](installer-configuration.md)
 
 OCP installer depends on having install-config.yaml file with all the cluster initial configuration. You can have this setup of the first time and then reuse it with slight modification to provision same or additional clusters.
