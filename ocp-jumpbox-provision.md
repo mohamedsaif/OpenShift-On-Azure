@@ -114,6 +114,36 @@ curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 
 ```
 
+### OpenShift CLI (Installer & Client)
+
+Download the installer/client program from RedHat (save it to the installation folder you created)
+
+>**NOTE:** Depending on when you found this guide, the latest version of the installer is 4.3.5, there might be a new version exists. You can check the latest version by visiting [OCP Clients](https://mirror.openshift.com/pub/openshift-v4/clients/ocp/)
+
+#### OCP Installer
+
+```bash
+
+# Extract the installer to installer folder
+mkdir installer
+wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.3.3/openshift-install-linux-4.3.5.tar.gz
+tar -xvzf ./openshift-install-linux-4.3.5.tar.gz -C ./installer
+
+# If you wish to have it in PATH libs so you can execute it without having it in folder, run this:
+# sudo cp ./installer/openshift-install /usr/local/bin/
+
+```
+
+#### OCP Client
+
+```bash
+
+mkdir client
+wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.3.3/openshift-client-linux-4.3.5.tar.gz
+tar -xvzf ./openshift-client-linux-4.3.5.tar.gz -C ./client
+
+```
+
 ### python3
 
 ```bash

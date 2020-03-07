@@ -219,19 +219,19 @@ ssh-add ~/.ssh/$CLUSTER_NAME-rsa
 # Obtaining IPI program
 # Download the installer/client program from RedHat (save it to the installation folder you created)
 # https://cloud.redhat.com/openshift/install/azure/installer-provisioned
-# Files will be something like (openshift-client-linux-4.3.2.tar.gz and openshift-install-linux-4.3.2.tar.gz)
+# Files will be something like (openshift-client-linux-4.3.X.tar.gz and openshift-install-linux-4.3.X.tar.gz)
 
 # Extract the installer to installer folder
 mkdir installer
-wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.3.3/openshift-install-linux-4.3.3.tar.gz
-tar -xvzf ./openshift-install-linux-4.3.3.tar.gz -C ./installer
+wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.3.5/openshift-install-linux-4.3.5.tar.gz
+tar -xvzf ./openshift-install-linux-4.3.5.tar.gz -C ./installer
 
 # If you wish to have it in PATH libs so you can execute it without having it in folder, run this:
 # sudo cp ./installer/openshift-install /usr/local/bin/
 
 mkdir client
-wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.3.3/openshift-client-linux-4.3.3.tar.gz
-tar -xvzf ./openshift-client-linux-4.3.3.tar.gz -C ./client
+wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.3.5/openshift-client-linux-4.3.5.tar.gz
+tar -xvzf ./openshift-client-linux-4.3.5.tar.gz -C ./client
 
 # Get the json pull secret from RedHat (save it to the installation folder you created)
 # https://cloud.redhat.com/openshift/install/azure/installer-provisioned
