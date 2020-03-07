@@ -192,6 +192,10 @@ az ad app permission grant --id $OCP_SP_ID --api 00000002-0000-0000-c000-0000000
 
 Now by visiting the AAD in Azure portal, you can search for your service principal under "App Registrations" and make sure to grant the admin consent.
 
+Checking on the AAD permission admin consent is granted successfully (if not, click on the Grant Admin Consent).
+
+![aad-permissions](res/aad-permissions.png)
+
 #### Assigning "Contributor" (for Azure resources creation) 
 
 ```bash
