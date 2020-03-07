@@ -90,13 +90,14 @@ To use Red Hat OCP installer, you need to prepare in advance few prerequisites b
 
 OCP installer depends on having install-config.yaml file with all the cluster initial configuration. You can have this setup of the first time and then reuse it with slight modification to provision same or additional clusters.
 
-### [IPI Approach]()
+### [IPI Approach](ocp-ipi.md)
 
 Follow this guide to install OCP via IPI
 
-### [UPI Approach]()
+### [UPI Approach](ocp-upi.md)
 
 Follow this guide to install OCP via UPI
 
-### OCP Cluster Testing
+### [OCP Cluster Testing](ocp-testing.md)
 
+Now it is time to access the cluster mainly via OC client CLI.
