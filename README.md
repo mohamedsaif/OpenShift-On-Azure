@@ -58,7 +58,7 @@ All what you need to use the IPI method, is:
 
 ### UPI
 
-Using UPI is my recommended way in enterprise setup of production environments where you have a subscription wide policies that relates to naming, RBAC and tagging among many other requirements that requires more control over the cluster provisioning.
+Using UPI (User Provided Infrastructure) is my recommended approach in enterprise setup of production environments where you have a subscription wide policies that relates to naming, RBAC and tagging among many other requirements that requires more control over the cluster provisioning.
 
 In the UPI, you will be creating/reusing existing:
 1. Resource Group
