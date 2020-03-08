@@ -74,7 +74,7 @@ We will have a common process where you need to have whether using IPI or UPI an
 
 You should now by now whether you are creating a private or public cluster, what is your virtual network settings/information, cluster name and have access to Red Hat pull secret.
 
-### [Prepare Jump-box Machine](jumpbox-provision.md)
+### [Prepare Jump-box Machine](ocp-jumpbox-provision.md)
 
 It is a good practice to have a jump box server to act as your installation terminal (especially if you are creating a private cluster with no access to the vnet). This guid helps you in setting up this VM and I would highly recommend doing so.
 
@@ -82,13 +82,13 @@ If you are using a local dev machine, make sure to follow the installation steps
 
 >**NOTE:** OCP installer currently support linux or Mac environments only. If you are on Windows, make sure to use [Windows Subsystem for Linux (WSL)](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
 
-### [Prerequisites](prerequisites.md)
+### [Prerequisites](ocp-prerequisites.md)
 
 To use Red Hat OCP installer, you need to prepare in advance few prerequisites before starting the installation process.
 
 This guide only focuses on the prerequisites that is shared between IPI and UPI methods.
 
-### [Installer Configuration](installer-configuration.md)
+### [Installer Configuration](ocp-installer-configuration.md)
 
 OCP installer depends on having install-config.yaml file with all the cluster initial configuration. You can have this setup of the first time and then reuse it with slight modification to provision same or additional clusters.
 
