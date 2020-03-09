@@ -72,7 +72,6 @@ az vm list-usage -l $OCP_LOCATION -o table
 
 ./openshift-install create cluster --dir=./installation --log-level=info
 
-```
 
 # By default, a cluster will create:
 # Bootstrap:    1 Standard_D4s_v3 vm (removed after install)
@@ -95,6 +94,8 @@ az vm list-usage -l $OCP_LOCATION -o table
 # INFO Access the OpenShift web-console here: https://console-openshift-console.apps.dev-ocp-weu.YOURDOMAIN.COM 
 # INFO Login to the console with user: kubeadmin, password: yQLvW-BzmTQ-DY8dx-AZZsY 
 
+```
+
 ## Deleting the cluster all generated resources
 
 If cluster needs to be destroyed to be recreated, execute the following:
@@ -107,6 +108,7 @@ If cluster needs to be destroyed to be recreated, execute the following:
 Note that some files might not be removed (like the terraform.tfstate) by the installer. You need to remove them manually
 
 Sample destruction output of fully provisioned cluster
+
 ```bash
 
 # INFO deleted                                       record=api.dev-ocp-weu
