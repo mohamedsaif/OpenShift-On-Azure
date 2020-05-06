@@ -30,7 +30,7 @@ az provider register -n Microsoft.RedHatOpenShift --wait
 PULL_SECRET=$(<pull-secret.txt)
 
 # Configure installation variables
-PREFIX=aro435
+PREFIX=aro4
 LOCATION=westeurope # Check the available regions on the ARO roadmap https://aka.ms/aro/roadmap
 ARO_RG="$PREFIX-$LOCATION"
 ARO_INFRA_RG="$PREFIX-infra-$LOCATION"
@@ -38,7 +38,7 @@ VNET_RG="$PREFIX-shared-$LOCATION"
 
 # Cluster information
 CLUSTER=$PREFIX-$LOCATION
-DOMAIN_NAME=aro.mohamedsaif.com
+DOMAIN_NAME=aro4.mohamedsaif.com
 
 # Network details
 PROJ_VNET_NAME=aro-vnet
@@ -95,6 +95,11 @@ ARO_SP_TENANT=$(echo $ARO_SP | jq -r .tenant)
 echo $ARO_SP_ID
 echo $ARO_SP_PASSWORD
 echo $ARO_SP_TENANT
+
+# If you have existing SP (note that SP can be used only with one ARO cluster)
+# ARO_SP_ID=
+# ARO_SP_PASSWORD=
+
 # Role assignment
 az role assignment create --assignee $ARO_SP_ID --role "Contributor" --resource-group $ARO_RG
 PROJ_VNET_ID=$(az network vnet show -g $VNET_RG --name $PROJ_VNET_NAME --query id -o tsv)
@@ -102,9 +107,9 @@ az role assignment create --assignee $ARO_SP_ID --role "User Access Administrato
 
 # Creating the cluster
 az aro create \
-    --resource-group "$ARO_RG" \
+    --resource-group $ARO_RG \
     --cluster-resource-group $ARO_INFRA_RG \
-    --name "$CLUSTER" \
+    --name $CLUSTER \
     --location $LOCATION \
     --vnet $PROJ_VNET_NAME \
     --vnet-resource-group $VNET_RG \
@@ -115,8 +120,6 @@ az aro create \
     --pull-secret $PULL_SECRET \
     --worker-count 3 \
     --domain $DOMAIN_NAME \
-    --client-id $ARO_SP_ID \
-    --client-secret $ARO_SP_Password \
     --tags "PROJECT=ARO4" "STATUS=EXPERIMENTAL" --debug
 
 # To create fully private clusters add the following to the create command:
@@ -129,6 +132,14 @@ az aro create \
 az aro list -o table
 
 az aro list-credentials -g $ARO_RG -n $CLUSTER
+
+# Getting the oc CLI tools
+mkdir client
+wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz
+tar -xvzf ./openshift-client-linux.tar.gz -C ./client
+sudo cp ./client/oc /usr/local/bin/
+oc version
+oc login $CLUSTER_URL --username=$USER --password=$PASSWORD
 
 COUNT=4
 az aro update -g "$ARO_RG" -n "$CLUSTER" --worker-count "$COUNT"
