@@ -115,23 +115,31 @@ az aro create \
     --vnet-resource-group $VNET_RG \
     --master-subnet $MASTERS_SUBNET_NAME \
     --worker-subnet $WORKERS_SUBNET_NAME \
-    --ingress-visibility Private \
-    --apiserver-visibility Private \
+    --ingress-visibility Public \
+    --apiserver-visibility Public \
     --pull-secret $PULL_SECRET \
     --worker-count 3 \
-    --domain $DOMAIN_NAME \
+    --client-id $ARO_SP_ID \
+    --client-secret $ARO_SP_PASSWORD \
     --tags "PROJECT=ARO4" "STATUS=EXPERIMENTAL" --debug
+
+# In private cluster, I would highly recommend setting up the private DNS by including the following:
+# --domain $DOMAIN_NAME
 
 # To create fully private clusters add the following to the create command:
 # Ingress controls the visibility of your workloads
 # API Server control the visibility of your masters api server
-# --ingress-visibility Public \
-# --apiserver-visibility Public \
+# --ingress-visibility Private \
+# --apiserver-visibility Private \
 
 # Check the cluster
 az aro list -o table
 
+# To display cluster kubeadmin credentials:
 az aro list-credentials -g $ARO_RG -n $CLUSTER
+
+# Get the API server url:
+CLUSTER_URL=$(az aro show -g $ARO_RG -n $CLUSTER --query apiserverProfile.url -o tsv)
 
 # Getting the oc CLI tools
 mkdir client
@@ -139,10 +147,52 @@ wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-
 tar -xvzf ./openshift-client-linux.tar.gz -C ./client
 sudo cp ./client/oc /usr/local/bin/
 oc version
-oc login $CLUSTER_URL --username=$USER --password=$PASSWORD
 
+# Login to the cluster using the cli
+USER=$(az aro list-credentials -g $ARO_RG -n $CLUSTER --query kubeadminUsername -o tsv)
+PASSWORD=$(az aro list-credentials -g $ARO_RG -n $CLUSTER --query kubeadminPassword -o tsv)
+oc login $CLUSTER_URL --username=$USER --password=$PASSWORD
+# test the successful login
+oc get nodes
+
+# Scale the cluster to 4 worker nodes
 COUNT=4
 az aro update -g "$ARO_RG" -n "$CLUSTER" --worker-count "$COUNT"
+
+# DNS Forwarder setup (for on-premise DNS name resolutions)
+oc edit dns.operator/default
+
+# Update the spec: {} with your DNS forward setup
+# spec:
+#   servers:
+#   - name: foo-server 
+#     zones: 
+#       - foo.com
+#     forwardPlugin:
+#       upstreams: 
+#         - 1.1.1.1
+#         - 2.2.2.2:5353
+#   - name: bar-server
+#     zones:
+#       - bar.com
+#       - example.com
+#     forwardPlugin:
+#       upstreams:
+#         - 3.3.3.3
+#         - 4.4.4.4:5454
+
+# Check the status
+oc describe clusteroperators/dns
+
+# Check the dns logs:
+oc logs --namespace=openshift-dns-operator deployment/dns-operator -c dns-operator
+
+# Test the DNS resolution
+kubectl run --generator=run-pod/v1 -it --rm aro-ssh --image=debian
+# Once you are in the interactive session, execute the following commands (replace the FQDN with yours)
+apt-get update
+apt-get install dnsutils -y
+nslookup dns.mohamedsaif-cloud.corp.
 
 # Clean up
 az aro delete -g $ARO_RG -n $CLUSTER
