@@ -159,8 +159,7 @@ oc login $CLUSTER_URL --username=$USER --password=$PASSWORD
 oc get nodes
 
 # Scale the cluster to 4 worker nodes
-COUNT=4
-az aro update -g "$ARO_RG" -n "$CLUSTER" --worker-count "$COUNT"
+# The easiest way to do this is via the console -> Compute -> Machine Sets -> each worker will have a machine set (usually with different availability zones to optimize the cluster SLA), set the desired count to the target value
 
 # DNS Forwarder setup (for on-premise DNS name resolutions)
 oc edit dns.operator/default
