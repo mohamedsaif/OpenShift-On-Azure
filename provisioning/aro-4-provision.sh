@@ -12,6 +12,9 @@ sudo apt-get update && sudo apt-get install --only-upgrade -y azure-cli
 az login
 
 # Getting the aro extension
+az extension add -n aro --index https://az.aroapp.io/stable
+
+# or update an existing extension
 az extension update -n aro --index https://az.aroapp.io/stable
 
 # check that the new extension is available
@@ -181,6 +184,16 @@ oc edit dns.operator/default
 #         - 3.3.3.3
 #         - 4.4.4.4:5454
 
+# I used the following to forward to a DNS server deployed in a peered hub network
+# spec:
+#   servers:
+#   - forwardPlugin:
+#       upstreams:
+#       - 10.165.5.4
+#     name: azure-custom-dns
+#     zones:
+#     - mohamedsaif-cloud.corp
+
 # Check the status
 oc describe clusteroperators/dns
 
@@ -188,7 +201,7 @@ oc describe clusteroperators/dns
 oc logs --namespace=openshift-dns-operator deployment/dns-operator -c dns-operator
 
 # Test the DNS resolution
-kubectl run --generator=run-pod/v1 -it --rm aro-ssh --image=debian
+oc run --generator=run-pod/v1 -it --rm aro-ssh --image=debian
 # Once you are in the interactive session, execute the following commands (replace the FQDN with yours)
 apt-get update
 apt-get install dnsutils -y
