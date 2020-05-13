@@ -41,7 +41,7 @@ VNET_RG="$PREFIX-shared-$LOCATION"
 
 # Cluster information
 CLUSTER=$PREFIX-$LOCATION
-DOMAIN_NAME=aro4.mohamedsaif.com
+DOMAIN_NAME=aro4-$RANDOM
 
 # Network details
 PROJ_VNET_NAME=aro-vnet
@@ -87,7 +87,7 @@ az network vnet subnet update \
 # ARO SP
 # Use existing Service Principal
 ARO_SP_ID=REPLACE
-ARO_SP_Password=REPLACE
+ARO_SP_PASSWORD=REPLACE
 
 # or create new SP
 ARO_SP=$(az ad sp create-for-rbac -n "${CLUSTER}-aro-sp" --skip-assignment)
