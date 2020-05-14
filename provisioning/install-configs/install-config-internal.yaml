@@ -7,7 +7,7 @@ compute:
     azure:
       osDisk:
         diskSizeGB: 120 
-      type: Standard_D4s_v3
+      type: Standard_D8s_v3
   replicas: 3
 controlPlane:
   hyperthreading: Enabled
@@ -16,7 +16,7 @@ controlPlane:
     azure:
       osDisk:
         diskSizeGB: 120 
-      type: Standard_D4s_v3
+      type: Standard_D8s_v3
   replicas: 3
 metadata:
   creationTimestamp: null
