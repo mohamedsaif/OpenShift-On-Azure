@@ -86,8 +86,8 @@ az network vnet subnet update \
 
 # ARO SP
 # Use existing Service Principal
-ARO_SP_ID=REPLACE
-ARO_SP_PASSWORD=REPLACE
+ARO_SP_ID=4af5eb8e-1ad4-48cd-8fd9-ef0ae4d34567
+ARO_SP_PASSWORD=56b157fc-7670-46a5-a4d0-87ee0fe2a9ce
 
 # or create new SP
 ARO_SP=$(az ad sp create-for-rbac -n "${CLUSTER}-aro-sp" --skip-assignment)
@@ -107,6 +107,12 @@ echo $ARO_SP_TENANT
 az role assignment create --assignee $ARO_SP_ID --role "Contributor" --resource-group $ARO_RG
 PROJ_VNET_ID=$(az network vnet show -g $VNET_RG --name $PROJ_VNET_NAME --query id -o tsv)
 az role assignment create --assignee $ARO_SP_ID --role "User Access Administrator" --scope $PROJ_VNET_ID
+
+# Check the assignments
+az role assignment list \
+    --all \
+    --assignee $ARO_SP_ID \
+    --output json | jq '.[] | {"principalName":.principalName, "roleDefinitionName":.roleDefinitionName, "scope":.scope}'
 
 # Creating the cluster
 az aro create \
