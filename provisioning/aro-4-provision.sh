@@ -166,7 +166,13 @@ oc get nodes
 
 # Scale the cluster to 4 worker nodes
 # The easiest way to do this is via the console -> Compute -> Machine Sets -> each worker will have a machine set (usually with different availability zones to optimize the cluster SLA), set the desired count to the target value
-
+# You can also scale manually through the machineset apis
+# Get all machinesets
+oc get machinesets -n openshift-machine-api
+# Scale a particular one to 2 nodes
+oc scale --replicas=2 machineset <machineset> -n openshift-machine-api
+# NOTE: Having zero worker nodes in your cluster will result be default in losing access to OpenShift console. You will still be able to access the cluster via oc CLI
+# NOTE: If you need to cool down the cluster to save cost, I would recommend maintaining at least 2 nodes during that period to avoid hitting problems with cluster operations
 # DNS Forwarder setup (for on-premise DNS name resolutions)
 oc edit dns.operator/default
 
