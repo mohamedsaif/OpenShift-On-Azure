@@ -84,11 +84,6 @@ az network vnet subnet update \
   -n $MASTERS_SUBNET_NAME \
   --disable-private-link-service-network-policies true
 
-# ARO SP
-# Use existing Service Principal
-ARO_SP_ID=REPLACE
-ARO_SP_PASSWORD=REPLACE
-
 # or create new SP
 ARO_SP=$(az ad sp create-for-rbac -n "${CLUSTER}-aro-sp" --skip-assignment)
 echo $ARO_SP | jq
@@ -107,6 +102,12 @@ echo $ARO_SP_TENANT
 az role assignment create --assignee $ARO_SP_ID --role "Contributor" --resource-group $ARO_RG
 PROJ_VNET_ID=$(az network vnet show -g $VNET_RG --name $PROJ_VNET_NAME --query id -o tsv)
 az role assignment create --assignee $ARO_SP_ID --role "User Access Administrator" --scope $PROJ_VNET_ID
+
+# Check the assignments
+az role assignment list \
+    --all \
+    --assignee $ARO_SP_ID \
+    --output json | jq '.[] | {"principalName":.principalName, "roleDefinitionName":.roleDefinitionName, "scope":.scope}'
 
 # Creating the cluster
 az aro create \
@@ -160,7 +161,13 @@ oc get nodes
 
 # Scale the cluster to 4 worker nodes
 # The easiest way to do this is via the console -> Compute -> Machine Sets -> each worker will have a machine set (usually with different availability zones to optimize the cluster SLA), set the desired count to the target value
-
+# You can also scale manually through the machineset apis
+# Get all machinesets
+oc get machinesets -n openshift-machine-api
+# Scale a particular one to 2 nodes
+oc scale --replicas=2 machineset <machineset> -n openshift-machine-api
+# NOTE: Having zero worker nodes in your cluster will result be default in losing access to OpenShift console. You will still be able to access the cluster via oc CLI
+# NOTE: If you need to cool down the cluster to save cost, I would recommend maintaining at least 2 nodes during that period to avoid hitting problems with cluster operations
 # DNS Forwarder setup (for on-premise DNS name resolutions)
 oc edit dns.operator/default
 
