@@ -84,11 +84,6 @@ az network vnet subnet update \
   -n $MASTERS_SUBNET_NAME \
   --disable-private-link-service-network-policies true
 
-# ARO SP
-# Use existing Service Principal
-ARO_SP_ID=4af5eb8e-1ad4-48cd-8fd9-ef0ae4d34567
-ARO_SP_PASSWORD=56b157fc-7670-46a5-a4d0-87ee0fe2a9ce
-
 # or create new SP
 ARO_SP=$(az ad sp create-for-rbac -n "${CLUSTER}-aro-sp" --skip-assignment)
 echo $ARO_SP | jq
