@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  namespace: default
+spec:
+  containers:
+    - name: nginx-pod
+      image: #{acrName}#/nginx:latest
+      imagePullPolicy: IfNotPresent
+  imagePullSecrets:
+    - name: default-acr
