@@ -28,6 +28,9 @@ az -v
 # Registering the Azure Resource Provider for ARO
 az provider register -n Microsoft.RedHatOpenShift --wait
 
+# Check the ARO available regions:
+az provider show -n Microsoft.RedHatOpenShift --query "resourceTypes[?resourceType == 'OpenShiftClusters']".locations
+
 # Getting Red Hat Pull Secret for accessing OCP market place
 # Visit and download pull-secret.txt from   # https://cloud.redhat.com/openshift/install/azure/installer-provisioned/' # [OPTIONAL]
 PULL_SECRET=$(<pull-secret.txt)
