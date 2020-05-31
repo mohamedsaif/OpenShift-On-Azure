@@ -1,0 +1,2 @@
+# This should be invoked with 4 arguments, azureSubscriptionId, azureRegionforLogAnalyticsWorkspace,
+https://raw.githubusercontent.com/microsoft/OMS-docker/ci_feature_prod/docs/openshiftV4/onboarding_azuremonitor_for_containers.sh
