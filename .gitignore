@@ -8,3 +8,6 @@ provisioning/pull-secret.txt
 provisioning/aro-assignment-error-info.txt
 client/**
 **/*.tar.gz
+**/aro-provision.vars
+**/aro-logs-workspace-deployment-updated.json
+aro-4/onboarding_azuremonitor_for_containers.sh

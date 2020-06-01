@@ -28,6 +28,9 @@ az -v
 # Registering the Azure Resource Provider for ARO
 az provider register -n Microsoft.RedHatOpenShift --wait
 
+# Check the ARO available regions:
+az provider show -n Microsoft.RedHatOpenShift --query "resourceTypes[?resourceType == 'OpenShiftClusters']".locations
+
 # Getting Red Hat Pull Secret for accessing OCP market place
 # Visit and download pull-secret.txt from   # https://cloud.redhat.com/openshift/install/azure/installer-provisioned/' # [OPTIONAL]
 PULL_SECRET=$(<pull-secret.txt)
@@ -109,6 +112,27 @@ az role assignment list \
     --assignee $ARO_SP_ID \
     --output json | jq '.[] | {"principalName":.principalName, "roleDefinitionName":.roleDefinitionName, "scope":.scope}'
 
+# Saving variables to a file for later use
+echo export PREFIX=aro4 >> ./aro-provision.vars
+# Check the available regions on the ARO roadmap https://aka.ms/aro/roadmap
+echo export LOCATION=westeurope >> ./aro-provision.vars
+echo export ARO_RG=$ARO_RG >> ./aro-provision.vars
+echo export ARO_INFRA_RG=$ARO_INFRA_RG >> ./aro-provision.vars
+echo export VNET_RG=$VNET_RG >> ./aro-provision.vars
+# Cluster information
+echo export CLUSTER=$CLUSTER >> ./aro-provision.vars
+echo export DOMAIN_NAME=$DOMAIN_NAME >> ./aro-provision.vars
+# Network details
+echo export PROJ_VNET_NAME=$PROJ_VNET_NAME >> ./aro-provision.vars
+echo export MASTERS_SUBNET_NAME=$MASTERS_SUBNET_NAME >> ./aro-provision.vars
+echo export WORKERS_SUBNET_NAME=$WORKERS_SUBNET_NAME >> ./aro-provision.vars
+echo export PROJ_VNET_ADDRESS_SPACE=$PROJ_VNET_ADDRESS_SPACE >> ./aro-provision.vars
+echo export MASTERS_SUBNET_IP_PREFIX=$MASTERS_SUBNET_IP_PREFIX >> ./aro-provision.vars
+echo export WORKERS_SUBNET_IP_PREFIX=$WORKERS_SUBNET_IP_PREFIX >> ./aro-provision.vars
+# Service Principal
+echo export ARO_SP_ID=$ARO_SP_ID >> ./aro-provision.vars
+echo export ARO_SP_PASSWORD=$ARO_SP_PASSWORD >> ./aro-provision.vars
+echo export ARO_SP_TENANT=$ARO_SP_TENANT >> ./aro-provision.vars
 # Creating the cluster
 az aro create \
     --resource-group $ARO_RG \
@@ -125,6 +149,7 @@ az aro create \
     --worker-count 3 \
     --client-id $ARO_SP_ID \
     --client-secret $ARO_SP_PASSWORD \
+    --domain $DOMAIN_NAME \
     --tags "PROJECT=ARO4" "STATUS=EXPERIMENTAL" --debug
 
 # In private cluster, I would highly recommend setting up the private DNS by including the following:
@@ -168,50 +193,6 @@ oc get machinesets -n openshift-machine-api
 oc scale --replicas=2 machineset <machineset> -n openshift-machine-api
 # NOTE: Having zero worker nodes in your cluster will result be default in losing access to OpenShift console. You will still be able to access the cluster via oc CLI
 # NOTE: If you need to cool down the cluster to save cost, I would recommend maintaining at least 2 nodes during that period to avoid hitting problems with cluster operations
-# DNS Forwarder setup (for on-premise DNS name resolutions)
-oc edit dns.operator/default
-
-# Update the spec: {} with your DNS forward setup
-# spec:
-#   servers:
-#   - name: foo-server 
-#     zones: 
-#       - foo.com
-#     forwardPlugin:
-#       upstreams: 
-#         - 1.1.1.1
-#         - 2.2.2.2:5353
-#   - name: bar-server
-#     zones:
-#       - bar.com
-#       - example.com
-#     forwardPlugin:
-#       upstreams:
-#         - 3.3.3.3
-#         - 4.4.4.4:5454
-
-# I used the following to forward to a DNS server deployed in a peered hub network
-# spec:
-#   servers:
-#   - forwardPlugin:
-#       upstreams:
-#       - 10.165.5.4
-#     name: azure-custom-dns
-#     zones:
-#     - mohamedsaif-cloud.corp
-
-# Check the status
-oc describe clusteroperators/dns
-
-# Check the dns logs:
-oc logs --namespace=openshift-dns-operator deployment/dns-operator -c dns-operator
-
-# Test the DNS resolution
-oc run --generator=run-pod/v1 -it --rm aro-ssh --image=debian
-# Once you are in the interactive session, execute the following commands (replace the FQDN with yours)
-apt-get update
-apt-get install dnsutils -y
-nslookup dns.mohamedsaif-cloud.corp.
 
 # Clean up
 az aro delete -g $ARO_RG -n $CLUSTER
