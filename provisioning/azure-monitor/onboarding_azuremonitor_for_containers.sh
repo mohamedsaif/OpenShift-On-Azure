@@ -42,11 +42,11 @@ az cloud set -n AzureCloud
 echo "login to the azure interactively"
 az login
 
-if [ -z $logAnalyticsWorkspaceResourceId ]; then
-  echo "since logAnalyticsWorkspaceResourceId parameter not provided so using or creating default azure log analytics workspace"
-
   echo "set the subscription id: ${subscriptionId}"
   az account set -s ${subscriptionId}
+
+if [ -z $logAnalyticsWorkspaceResourceId ]; then
+  echo "since logAnalyticsWorkspaceResourceId parameter not provided so using or creating default azure log analytics workspace"
 
   # mapping fors for default Azure Log Analytics workspace
   declare -A AzureCloudLocationToOmsRegionCodeMap=(
