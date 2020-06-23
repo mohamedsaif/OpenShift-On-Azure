@@ -3,6 +3,9 @@
 # Azure CLI v2.0.72+, Helm 3, Bash v4 and kubectl set to OpenShift context
 # Docs: https://docs.microsoft.com/en-us/azure/azure-monitor/insights/container-insights-azure-redhat4-setup
 
+# Installing Helm 3
+
+
 # Creating new Log Analytics Workspace
 # Skip if you will join an existing one
 # Update the below variables to the desired values before execution
@@ -41,8 +44,10 @@ curl -LO https://raw.githubusercontent.com/microsoft/OMS-docker/ci_feature_prod/
 
 # This should be invoked with 4 arguments:
 # azureSubscriptionId, azureRegionforLogAnalyticsWorkspace, clusterName and kubeContext name
+# I'm getting the subscription id from the signed in account:
+OCP_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
 CLUSTER_NAME=ocp4-cluster
 KUBE_CONTEXT=$(kubectl config current-context)
 ARO_CLUSTER_ID=$(az aro show  -g $ARO_RG -n $CLUSTER --query id -o tsv)
 
-bash onboarding_azuremonitor_for_containers.sh $CLUSTER_NAME $KUBE_CONTEXT $ARO_CLUSTER_ID $ARO_LOGS_WORKSPACE_ID
+bash onboarding_azuremonitor_for_containers.sh $OCP_SUBSCRIPTION_ID $OCP_LOGS_LOCATION $CLUSTER_NAME $KUBE_CONTEXT $ARO_LOGS_WORKSPACE_ID

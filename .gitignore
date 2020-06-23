@@ -2,10 +2,10 @@
 **/ARO-RP
 **/*-installation
 **/install-config-templates
-provisioning/ocp-installation.tar.gz
-provisioning/aro-4-info.txt
-provisioning/pull-secret.txt
-provisioning/aro-assignment-error-info.txt
+**/ocp-installation.tar.gz
+**/aro-4-info.txt
+**/pull-secret.txt
+**/aro-assignment-error-info.txt
 client/**
 **/*.tar.gz
 **/aro-provision.vars

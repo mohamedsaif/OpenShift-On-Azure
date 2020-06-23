@@ -37,7 +37,7 @@ PULL_SECRET=$(<pull-secret.txt)
 
 # Configure installation variables
 PREFIX=aro4
-LOCATION=westeurope # Check the available regions on the ARO roadmap https://aka.ms/aro/roadmap
+LOCATION=southafricanorth # Check the available regions on the ARO roadmap https://aka.ms/aro/roadmap
 ARO_RG="$PREFIX-$LOCATION"
 ARO_INFRA_RG="$PREFIX-infra-$LOCATION"
 VNET_RG="$PREFIX-shared-$LOCATION"
