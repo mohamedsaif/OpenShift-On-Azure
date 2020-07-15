@@ -37,17 +37,18 @@ PULL_SECRET=$(<pull-secret.txt)
 
 # Configure installation variables
 PREFIX=aro4
-LOCATION=westeurope # Check the available regions on the ARO roadmap https://aka.ms/aro/roadmap
-ARO_RG="$PREFIX-$LOCATION"
-ARO_INFRA_RG="$PREFIX-infra-$LOCATION"
-VNET_RG="$PREFIX-shared-$LOCATION"
+LOCATION=southafricanorth # Check the available regions on the ARO roadmap https://aka.ms/aro/roadmap
+LOCATION_CODE=zan
+ARO_RG="$PREFIX-$LOCATION_CODE"
+ARO_INFRA_RG="$PREFIX-infra-$LOCATION_CODE"
+VNET_RG="$PREFIX-shared-$LOCATION_CODE"
 
 # Cluster information
-CLUSTER=$PREFIX-$LOCATION
-DOMAIN_NAME=aro4-$RANDOM
+CLUSTER=$PREFIX-$LOCATION_CODE
+DOMAIN_NAME=aro4-$LOCATION_CODE-$RANDOM
 
 # Network details
-PROJ_VNET_NAME=aro-vnet
+PROJ_VNET_NAME=aro-vnet-$LOCATION_CODE
 MASTERS_SUBNET_NAME=$CLUSTER-masters
 WORKERS_SUBNET_NAME=$CLUSTER-workers
 PROJ_VNET_ADDRESS_SPACE=10.166.0.0/23
@@ -113,26 +114,26 @@ az role assignment list \
     --output json | jq '.[] | {"principalName":.principalName, "roleDefinitionName":.roleDefinitionName, "scope":.scope}'
 
 # Saving variables to a file for later use
-echo export PREFIX=aro4 >> ./aro-provision.vars
+echo export PREFIX=aro4 >> ./aro-provision-$LOCATION_CODE.vars
 # Check the available regions on the ARO roadmap https://aka.ms/aro/roadmap
-echo export LOCATION=westeurope >> ./aro-provision.vars
-echo export ARO_RG=$ARO_RG >> ./aro-provision.vars
-echo export ARO_INFRA_RG=$ARO_INFRA_RG >> ./aro-provision.vars
-echo export VNET_RG=$VNET_RG >> ./aro-provision.vars
+echo export LOCATION=westeurope >> ./aro-provision-$LOCATION_CODE.vars
+echo export ARO_RG=$ARO_RG >> ./aro-provision-$LOCATION_CODE.vars
+echo export ARO_INFRA_RG=$ARO_INFRA_RG >> ./aro-provision-$LOCATION_CODE.vars
+echo export VNET_RG=$VNET_RG >> ./aro-provision-$LOCATION_CODE.vars
 # Cluster information
-echo export CLUSTER=$CLUSTER >> ./aro-provision.vars
-echo export DOMAIN_NAME=$DOMAIN_NAME >> ./aro-provision.vars
+echo export CLUSTER=$CLUSTER >> ./aro-provision-$LOCATION_CODE.vars
+echo export DOMAIN_NAME=$DOMAIN_NAME >> ./aro-provision-$LOCATION_CODE.vars
 # Network details
-echo export PROJ_VNET_NAME=$PROJ_VNET_NAME >> ./aro-provision.vars
-echo export MASTERS_SUBNET_NAME=$MASTERS_SUBNET_NAME >> ./aro-provision.vars
-echo export WORKERS_SUBNET_NAME=$WORKERS_SUBNET_NAME >> ./aro-provision.vars
-echo export PROJ_VNET_ADDRESS_SPACE=$PROJ_VNET_ADDRESS_SPACE >> ./aro-provision.vars
-echo export MASTERS_SUBNET_IP_PREFIX=$MASTERS_SUBNET_IP_PREFIX >> ./aro-provision.vars
-echo export WORKERS_SUBNET_IP_PREFIX=$WORKERS_SUBNET_IP_PREFIX >> ./aro-provision.vars
+echo export PROJ_VNET_NAME=$PROJ_VNET_NAME >> ./aro-provision-$LOCATION_CODE.vars
+echo export MASTERS_SUBNET_NAME=$MASTERS_SUBNET_NAME >> ./aro-provision-$LOCATION_CODE.vars
+echo export WORKERS_SUBNET_NAME=$WORKERS_SUBNET_NAME >> ./aro-provision-$LOCATION_CODE.vars
+echo export PROJ_VNET_ADDRESS_SPACE=$PROJ_VNET_ADDRESS_SPACE >> ./aro-provision-$LOCATION_CODE.vars
+echo export MASTERS_SUBNET_IP_PREFIX=$MASTERS_SUBNET_IP_PREFIX >> ./aro-provision-$LOCATION_CODE.vars
+echo export WORKERS_SUBNET_IP_PREFIX=$WORKERS_SUBNET_IP_PREFIX >> ./aro-provision-$LOCATION_CODE.vars
 # Service Principal
-echo export ARO_SP_ID=$ARO_SP_ID >> ./aro-provision.vars
-echo export ARO_SP_PASSWORD=$ARO_SP_PASSWORD >> ./aro-provision.vars
-echo export ARO_SP_TENANT=$ARO_SP_TENANT >> ./aro-provision.vars
+echo export ARO_SP_ID=$ARO_SP_ID >> ./aro-provision-$LOCATION_CODE.vars
+echo export ARO_SP_PASSWORD=$ARO_SP_PASSWORD >> ./aro-provision-$LOCATION_CODE.vars
+echo export ARO_SP_TENANT=$ARO_SP_TENANT >> ./aro-provision-$LOCATION_CODE.vars
 # Creating the cluster
 az aro create \
     --resource-group $ARO_RG \
@@ -150,7 +151,10 @@ az aro create \
     --client-id $ARO_SP_ID \
     --client-secret $ARO_SP_PASSWORD \
     --domain $DOMAIN_NAME \
-    --tags "PROJECT=ARO4" "STATUS=EXPERIMENTAL" --debug
+    --tags "PROJECT=ARO4" "STATUS=EXPERIMENTAL"
+
+# Append this flag if you expect to face challenges during provisioning    
+# --debug
 
 # In private cluster, I would highly recommend setting up the private DNS by including the following:
 # --domain $DOMAIN_NAME
