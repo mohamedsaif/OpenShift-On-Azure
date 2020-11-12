@@ -43,4 +43,7 @@ oc run --generator=run-pod/v1 -it --rm aro-ssh --image=debian
 # Once you are in the interactive session, execute the following commands (replace the FQDN with yours)
 apt-get update
 apt-get install dnsutils -y
-nslookup dns.mohamedsaif-cloud.corp.
+nslookup -debug ocp.mohamedsaif-cloud.corp.
+
+# Or you can use the native ssh to node
+oc debug node/NODENAME

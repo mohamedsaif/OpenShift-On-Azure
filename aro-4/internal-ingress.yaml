@@ -1,0 +1,14 @@
+apiVersion: operator.openshift.io/v1
+kind: IngressController
+metadata:
+  namespace: openshift-ingress-operator
+  name: internal
+spec:
+  domain: intapps.aro4-weu-14920.westeurope.aroapp.io
+  endpointPublishingStrategy:
+    type: LoadBalancerService
+    loadBalancer:
+      scope: Internal
+  namespaceSelector:
+    matchLabels:
+      type: internal

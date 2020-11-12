@@ -37,8 +37,8 @@ PULL_SECRET=$(<pull-secret.txt)
 
 # Configure installation variables
 PREFIX=aro4
-LOCATION=southafricanorth # Check the available regions on the ARO roadmap https://aka.ms/aro/roadmap
-LOCATION_CODE=zan
+LOCATION=uaenorth # Check the available regions on the ARO roadmap https://aka.ms/aro/roadmap
+LOCATION_CODE=aen
 ARO_RG="$PREFIX-$LOCATION_CODE"
 ARO_INFRA_RG="$PREFIX-infra-$LOCATION_CODE"
 VNET_RG="$PREFIX-shared-$LOCATION_CODE"
@@ -171,9 +171,6 @@ az aro list -o table
 # To display cluster kubeadmin credentials:
 az aro list-credentials -g $ARO_RG -n $CLUSTER
 
-# Get the API server url:
-CLUSTER_URL=$(az aro show -g $ARO_RG -n $CLUSTER --query apiserverProfile.url -o tsv)
-
 # Getting the oc CLI tools
 mkdir client
 wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz
@@ -182,6 +179,8 @@ sudo cp ./client/oc /usr/local/bin/
 oc version
 
 # Login to the cluster using the cli
+# Get the API server url:
+CLUSTER_URL=$(az aro show -g $ARO_RG -n $CLUSTER --query apiserverProfile.url -o tsv)
 USER=$(az aro list-credentials -g $ARO_RG -n $CLUSTER --query kubeadminUsername -o tsv)
 PASSWORD=$(az aro list-credentials -g $ARO_RG -n $CLUSTER --query kubeadminPassword -o tsv)
 oc login $CLUSTER_URL --username=$USER --password=$PASSWORD
@@ -206,7 +205,7 @@ az aro delete -g $ARO_RG -n $CLUSTER
 #     az aro create : Create a cluster.
 #         Command group 'aro' is in preview. It may be changed/removed in a future release.
 # Arguments
-#     --master-subnet     [Required] : Name or ID of master vnet subnet.  If name is supplied,
+#     --master-subnet    wq [Required] : Name or ID of master vnet subnet.  If name is supplied,
 #                                      `--vnet` must be supplied.
 #     --name -n           [Required] : Name of cluster.
 #     --resource-group -g [Required] : Name of resource group. You can configure the default group
