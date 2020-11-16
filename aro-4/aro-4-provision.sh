@@ -134,6 +134,7 @@ echo export WORKERS_SUBNET_IP_PREFIX=$WORKERS_SUBNET_IP_PREFIX >> ./aro-provisio
 echo export ARO_SP_ID=$ARO_SP_ID >> ./aro-provision-$LOCATION_CODE.vars
 echo export ARO_SP_PASSWORD=$ARO_SP_PASSWORD >> ./aro-provision-$LOCATION_CODE.vars
 echo export ARO_SP_TENANT=$ARO_SP_TENANT >> ./aro-provision-$LOCATION_CODE.vars
+
 # Creating the cluster
 az aro create \
     --resource-group $ARO_RG \
@@ -193,7 +194,7 @@ oc get nodes
 # Get all machinesets
 oc get machinesets -n openshift-machine-api
 # Scale a particular one to 2 nodes
-oc scale --replicas=2 machineset <machineset> -n openshift-machine-api
+oc scale --replicas=1 machineset <machineset> -n openshift-machine-api
 # NOTE: Having zero worker nodes in your cluster will result be default in losing access to OpenShift console. You will still be able to access the cluster via oc CLI
 # NOTE: If you need to cool down the cluster to save cost, I would recommend maintaining at least 2 nodes during that period to avoid hitting problems with cluster operations
 

@@ -10,7 +10,9 @@ oc -n openshift-ingress get svc
 # OCP docs: https://docs.openshift.com/container-platform/4.3/networking/ingress-operator.html#nw-ingress-view_configuring-ingress
 
 # It is good to look at the yaml definition of the default ingress:
-oc -n openshift-ingress-operator get ingresscontroller/default -o yaml
+oc -n openshift-ingress-operator get ingresscontroller/default -o json | jq
+
+oc -n openshift-ingress-operator edit ingresscontroller/default
 
 # The below yaml will create new internal ingress:
 # apiVersion: operator.openshift.io/v1
