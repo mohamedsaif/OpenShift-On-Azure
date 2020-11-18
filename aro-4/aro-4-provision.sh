@@ -37,15 +37,15 @@ PULL_SECRET=$(<pull-secret.txt)
 
 # Configure installation variables
 PREFIX=aro4
-LOCATION=uaenorth # Check the available regions on the ARO roadmap https://aka.ms/aro/roadmap
-LOCATION_CODE=aen
+LOCATION=westeurope # Check the available regions on the ARO roadmap https://aka.ms/aro/roadmap
+LOCATION_CODE=weu
 ARO_RG="$PREFIX-$LOCATION_CODE"
 ARO_INFRA_RG="$PREFIX-infra-$LOCATION_CODE"
 VNET_RG="$PREFIX-shared-$LOCATION_CODE"
 
 # Cluster information
 CLUSTER=$PREFIX-$LOCATION_CODE
-DOMAIN_NAME=aro4-$LOCATION_CODE-$RANDOM
+DOMAIN_NAME=aro-weu.az.mohamedsaif.com
 
 # Network details
 PROJ_VNET_NAME=aro-vnet-$LOCATION_CODE
@@ -94,13 +94,18 @@ echo $ARO_SP | jq
 ARO_SP_ID=$(echo $ARO_SP | jq -r .appId)
 ARO_SP_PASSWORD=$(echo $ARO_SP | jq -r .password)
 ARO_SP_TENANT=$(echo $ARO_SP | jq -r .tenant)
+ARO_SP_OBJECT_ID=$(az ad sp show --id $ARO_SP_ID --query objectId --out tsv)
 echo $ARO_SP_ID
 echo $ARO_SP_PASSWORD
 echo $ARO_SP_TENANT
-
+echo $ARO_SP_OBJECT_ID
 # If you have existing SP (note that SP can be used only with one ARO cluster)
 # ARO_SP_ID=
 # ARO_SP_PASSWORD=
+
+# If you planning to use ARM, you will need Azure Red Hat OpenShift RP service principal object id to grant permission on the vnet
+ARO_RP_SP_OBJECT_ID=$(az ad sp list --display-name 'Azure Red Hat OpenShift RP' --query [].objectId -o tsv)
+echo $ARO_RP_SP_OBJECT_ID
 
 # Role assignment
 az role assignment create --assignee $ARO_SP_ID --role "Contributor" --resource-group $ARO_RG
