@@ -51,9 +51,9 @@ DOMAIN_NAME=aro-weu.az.mohamedsaif.com
 PROJ_VNET_NAME=aro-vnet-$LOCATION_CODE
 MASTERS_SUBNET_NAME=$CLUSTER-masters
 WORKERS_SUBNET_NAME=$CLUSTER-workers
-PROJ_VNET_ADDRESS_SPACE=10.166.0.0/23
-MASTERS_SUBNET_IP_PREFIX=10.166.0.0/24
-WORKERS_SUBNET_IP_PREFIX=10.166.1.0/24
+PROJ_VNET_ADDRESS_SPACE=10.167.0.0/23
+MASTERS_SUBNET_IP_PREFIX=10.167.0.0/24
+WORKERS_SUBNET_IP_PREFIX=10.167.1.0/24
 
 # Installation resource group creation
 az group create -g $ARO_RG -l $LOCATION
@@ -139,6 +139,8 @@ echo export WORKERS_SUBNET_IP_PREFIX=$WORKERS_SUBNET_IP_PREFIX >> ./aro-provisio
 echo export ARO_SP_ID=$ARO_SP_ID >> ./aro-provision-$LOCATION_CODE.vars
 echo export ARO_SP_PASSWORD=$ARO_SP_PASSWORD >> ./aro-provision-$LOCATION_CODE.vars
 echo export ARO_SP_TENANT=$ARO_SP_TENANT >> ./aro-provision-$LOCATION_CODE.vars
+echo export ARO_SP_OBJECT_ID=$ARO_SP_OBJECT_ID >> ./aro-provision-$LOCATION_CODE.vars
+echo export ARO_RP_SP_OBJECT_ID=$ARO_RP_SP_OBJECT_ID >> ./aro-provision-$LOCATION_CODE.vars
 
 # Creating the cluster
 az aro create \
