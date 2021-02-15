@@ -2,9 +2,10 @@ apiVersion: operator.openshift.io/v1
 kind: IngressController
 metadata:
   namespace: openshift-ingress-operator
-  name: internal
+  name: internal-apps
 spec:
-  domain: intapps.aro4-weu-14920.westeurope.aroapp.io
+  domain: internal.apps.aro-weu.az.mohamedsaif.corp
+  replicas: 2
   endpointPublishingStrategy:
     type: LoadBalancerService
     loadBalancer:
@@ -12,3 +13,6 @@ spec:
   namespaceSelector:
     matchLabels:
       type: internal
+  # routeSelector:
+  #   matchLabels:
+  #     type: internal
