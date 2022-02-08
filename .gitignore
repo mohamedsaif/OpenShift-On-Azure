@@ -11,3 +11,4 @@ client/**
 **/aro-provision.vars
 **/aro-logs-workspace-deployment-updated.json
 aro-4/onboarding_azuremonitor_for_containers.sh
+aro-4/aro-4-ovn-kubernetes.sh

@@ -73,3 +73,21 @@ nslookup hello-openshift-internal-db.apps.aro-weu.az.mohamedsaif.com
 nslookup internal.apps.aro-weu.az.mohamedsaif.com
 curl http://hello-openshift-internal-db.apps.aro-weu.az.mohamedsaif.com -k
 curl http://hello-openshift-internal-db.internal.apps.aro-weu.az.mohamedsaif.com
+
+# Forcing the default ingress to be internal
+oc replace --force --wait --filename - <<EOF
+apiVersion: operator.openshift.io/v1
+kind: IngressController
+metadata:
+  namespace: openshift-ingress-operator
+  name: default
+spec:
+  endpointPublishingStrategy:
+    type: LoadBalancerService
+    loadBalancer:
+      scope: Internal
+EOF
+
+# Notes:
+# 1. If your default ingress is public, and you need to define a different host name for a private ingress, for private routes (selected by namespace or route label) must explicitly mentioned the route host name to avoid getting the default host name from the default ingress.
+# 2. Default ingress is accessed from either console (cluster settings - global configuration - ingress) where you will find the default host name or through the following oc command:

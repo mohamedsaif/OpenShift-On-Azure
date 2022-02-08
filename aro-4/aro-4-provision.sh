@@ -5,6 +5,9 @@
 # Making sure you have the Python Tools:
 sudo apt-get install python-setuptools
 
+# Installing Azure CLI on Linux
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
 # Maybe also check that you are using the latest Azure CLI :)
 sudo apt-get update && sudo apt-get install --only-upgrade -y azure-cli
 
@@ -45,7 +48,8 @@ VNET_RG="$PREFIX-shared-$LOCATION_CODE"
 
 # Cluster information
 CLUSTER=$PREFIX-$LOCATION_CODE
-DOMAIN_NAME=aro-weu.az.mohamedsaif.com
+WORKERS_VM_SIZE=Standard_D8s_v3
+DOMAIN_NAME=aro-weu.az.mohamedsaif.local
 
 # Network details
 PROJ_VNET_NAME=aro-vnet-$LOCATION_CODE
@@ -152,13 +156,14 @@ az aro create \
     --vnet-resource-group $VNET_RG \
     --master-subnet $MASTERS_SUBNET_NAME \
     --worker-subnet $WORKERS_SUBNET_NAME \
-    --ingress-visibility Public \
-    --apiserver-visibility Public \
+    --ingress-visibility Private \
+    --apiserver-visibility Private \
     --pull-secret $PULL_SECRET \
     --worker-count 3 \
     --client-id $ARO_SP_ID \
     --client-secret $ARO_SP_PASSWORD \
     --domain $DOMAIN_NAME \
+    --worker-vm-size $WORKERS_VM_SIZE \
     --tags "PROJECT=ARO4" "STATUS=EXPERIMENTAL"
 
 # Append this flag if you expect to face challenges during provisioning    
