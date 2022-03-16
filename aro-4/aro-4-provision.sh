@@ -45,7 +45,10 @@ VNET_RG="$PREFIX-shared-$LOCATION_CODE"
 
 # Cluster information
 CLUSTER=$PREFIX-$LOCATION_CODE
+WORKERS_VM_SIZE=Standard_D4s_v3
 DOMAIN_NAME=aro-weu.az.mohamedsaif.com
+INGRESS_VISIBILITY=Public # or Private
+API_VISIBILITY=Public # or Private
 
 # Network details
 PROJ_VNET_NAME=aro-vnet-$LOCATION_CODE
@@ -128,6 +131,9 @@ echo export VNET_RG=$VNET_RG >> ./aro-provision-$LOCATION_CODE.vars
 # Cluster information
 echo export CLUSTER=$CLUSTER >> ./aro-provision-$LOCATION_CODE.vars
 echo export DOMAIN_NAME=$DOMAIN_NAME >> ./aro-provision-$LOCATION_CODE.vars
+echo export INGRESS_VISIBILITY=$INGRESS_VISIBILITY >> ./aro-provision-$LOCATION_CODE.vars
+echo export API_VISIBILITY=$API_VISIBILITY >> ./aro-provision-$LOCATION_CODE.vars
+echo export WORKERS_VM_SIZE=$WORKERS_VM_SIZE >> ./aro-provision-$LOCATION_CODE.vars
 # Network details
 echo export PROJ_VNET_NAME=$PROJ_VNET_NAME >> ./aro-provision-$LOCATION_CODE.vars
 echo export MASTERS_SUBNET_NAME=$MASTERS_SUBNET_NAME >> ./aro-provision-$LOCATION_CODE.vars
@@ -152,13 +158,14 @@ az aro create \
     --vnet-resource-group $VNET_RG \
     --master-subnet $MASTERS_SUBNET_NAME \
     --worker-subnet $WORKERS_SUBNET_NAME \
-    --ingress-visibility Public \
-    --apiserver-visibility Public \
+    --ingress-visibility $INGRESS_VISIBILITY \
+    --apiserver-visibility $API_VISIBILITY \
     --pull-secret $PULL_SECRET \
     --worker-count 3 \
     --client-id $ARO_SP_ID \
     --client-secret $ARO_SP_PASSWORD \
     --domain $DOMAIN_NAME \
+    --worker-vm-size $WORKERS_VM_SIZE \
     --tags "PROJECT=ARO4" "STATUS=EXPERIMENTAL"
 
 # Append this flag if you expect to face challenges during provisioning    
@@ -166,12 +173,21 @@ az aro create \
 
 # In private cluster, I would highly recommend setting up the private DNS by including the following:
 # --domain $DOMAIN_NAME
-
+# After the cluster provisioning, you can retrieve the IPs for ingress and API to be updated in the DNS records
+API_IP=$(az aro show -g $ARO_RG -n $CLUSTER --query apiserverProfile.ip -o tsv)
+INGRESS_IP=$(az aro show -g $ARO_RG -n $CLUSTER --query ingressProfiles[0].ip -o tsv)
+echo $API_IP
+echo $INGRESS_IP
 # To create fully private clusters add the following to the create command:
 # Ingress controls the visibility of your workloads
 # API Server control the visibility of your masters api server
 # --ingress-visibility Private \
 # --apiserver-visibility Private \
+
+# Custom dns for the cluster --domain $DOMAIN_NAME
+# locate the load balancer without the word "internal" in the cluster infra resource group
+# For the frontend IP configurations with a GUID like name, assign the IP to your *.apps.$DOMAIN_NAME record in selected DNS server
+# For the other frontend IP rule, assign it to api.$DOMAIN_NAME record in selected DNS server
 
 # Check the cluster
 az aro list -o table
