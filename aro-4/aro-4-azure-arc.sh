@@ -3,7 +3,7 @@ az extension add --name connectedk8s
 az extension add --name k8s-extension
 # update if extension already exists
 az extension update --name connectedk8s
-az extension udpate --name k8s-extension
+az extension update --name k8s-extension
 
 # Register required resource providers
 az provider register --namespace Microsoft.Kubernetes
@@ -99,7 +99,7 @@ az k8s-extension create \
   --cluster-type connectedClusters \
   --cluster-name $ARO_CLUSTER_NAME \
   --resource-group $ARC_RG \
-  --extension-type microsoft.azuredefender.kubernetes
+  --extension-type microsoft.azuredefender.kubernetes \
   --configuration-settings logAnalyticsWorkspaceResourceID=$WORKSPACE_ID auditLogPath="/var/log/kube-apiserver/audit.log"
 
 # Validate
