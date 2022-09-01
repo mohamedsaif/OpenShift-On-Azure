@@ -108,3 +108,37 @@ oc adm policy add-cluster-role-to-user cluster-admin $USER_NAME
 
 # Adding role to a user scoped at project
 oc adm policy add-role-to-user <role> <user> -n <project>
+
+# Installing Red Hat's Group Sync Operator from Operator Hub
+
+# Create new app registration and copy the following values:
+AZURE_TENANT_ID=
+GROUP_SYNC_SP_NAME=aro-group-sync-operator-sp
+AZURE_CLIENT_ID=
+AZURE_CLIENT_SECRET=
+# Grant the following API permissions to Microsoft Graph: Group.Read.All, GroupMember.Read.All and User.Read.All
+
+oc create secret generic azure-group-sync -n group-sync-operator --from-literal=AZURE_TENANT_ID=$AZURE_TENANT_ID --from-literal=AZURE_CLIENT_ID=$AZURE_CLIENT_ID --from-literal=AZURE_CLIENT_SECRET=$AZURE_CLIENT_SECRET
+
+cat << EOF | oc apply -f -
+apiVersion: redhatcop.redhat.io/v1alpha1
+kind: GroupSync
+metadata:
+  name: azure-groupsync
+spec:
+  providers:
+  - name: azure
+    azure:
+      credentialsSecret:
+        name: azure-group-sync
+        namespace: group-sync-operator
+      baseGroups:
+        - aro-admins
+        - aro-devs
+        - aro-support
+      userNameAttributes:
+        - userPrincipalName
+        - upn
+        - email
+        - name
+EOF

@@ -199,10 +199,10 @@ az aro list -o table
 az aro list-credentials -g $ARO_RG -n $CLUSTER
 
 # Getting the oc CLI tools
-mkdir client
+mkdir oc-cli
 wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz
-tar -xvzf ./openshift-client-linux.tar.gz -C ./client
-sudo cp ./client/oc /usr/local/bin/
+tar -xvzf ./openshift-client-linux.tar.gz -C ./oc-cli
+sudo cp ./oc-cli/oc /usr/local/bin/
 oc version
 
 # Login to the cluster using the cli
