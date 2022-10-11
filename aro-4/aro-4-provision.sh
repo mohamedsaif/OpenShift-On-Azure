@@ -178,7 +178,7 @@ az aro create \
 # --domain $DOMAIN_NAME
 # After the cluster provisioning, you can retrieve the IPs for ingress and API to be updated in the DNS records
 API_IP=$(az aro show -g $ARO_RG -n $CLUSTER --query apiserverProfile.ip -o tsv)
-INGRESS_IP=$(az aro show -g $ARO_RG -n $CLUSTER --query ingressProfiles[0].ip -o tsv)
+INGRESS_IP=$(az aro show -g $ARO_RG -n $CLUSTER --query 'ingressProfiles[0].ip' -o tsv)
 echo $API_IP
 echo $INGRESS_IP
 # To create fully private clusters add the following to the create command:
@@ -213,7 +213,8 @@ PASSWORD=$(az aro list-credentials -g $ARO_RG -n $CLUSTER --query kubeadminPassw
 oc login $CLUSTER_URL --username=$USER --password=$PASSWORD
 # test the successful login
 oc get nodes
-
+begop-aa6QZ-KPUES-WzZJy
+podman login -u kubeadmin -p $(oc whoami -t) image-registry.openshift-image-registry.svc:5000
 # Scale the cluster to 4 worker nodes
 # The easiest way to do this is via the console -> Compute -> Machine Sets -> each worker will have a machine set (usually with different availability zones to optimize the cluster SLA), set the desired count to the target value
 # You can also scale manually through the machineset apis
